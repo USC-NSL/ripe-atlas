@@ -9,6 +9,66 @@ import argparse
 debug = False
 key_loc = '~/.atlas/auth'
 
+class Traceroute(object):
+
+    def __init__(self, target, key):
+
+        self.target = target
+        self.description = ''
+        self.dont_frag = False
+        self.af = 4
+        self.protocol = 'ICMP'
+        self.is_onoff = True
+        self.resolve_on_probe = True
+        self.timeout = 4000
+        
+        self.num_probes = 1
+        self.probe_type = 'area'
+        self.probe_value = 'WW'
+        
+        self.key = key
+
+    def setup_definitions(self):
+    
+        definitions = {}
+        definitions['target'] = self.target
+        definitions['description'] = self.description
+        definitions['dontfrag'] = str(self.dont_frag).lower()
+        definitions['af'] = self.af #set ip version 
+        definitions['type'] = 'traceroute'
+        definitions['protocol'] = self.protocol
+        definitions['is_oneoff'] = str(self.is_oneoff).lower()
+        definitions['resolve_on_probe'] = str(self.resolve_on_probe).lower()
+        definitions['timeout'] = self.timeout
+        
+        return definitions
+
+    def setup_probes(self):
+
+        probes = {}
+        probes['requested'] = self.num_probes
+        probes['type'] = self.probe_type
+        probes['value'] = self.probe_value
+
+        return probes
+
+    def run(self):
+
+        key = self.key
+        
+        definitions = self.setup_definitions()
+        probes = self.setup_probes()
+
+        data = {'definitions': [definitions], 'probes': [probes]}
+        data_str = json.dumps(data) 
+
+        headers =  {'content-type': 'application/json', 'accept': 'application/json'}
+    
+        response = requests.post('https://atlas.ripe.net/api/v1/measurement/?key='+key, data_str, headers=headers)
+        response_str = response.text
+
+        return json.loads(response_str)
+
 def readkey():
     auth_file = os.path.expanduser(key_loc)
     f = open(auth_file)
@@ -43,56 +103,35 @@ def load_input(inputfile):
 
     return target_dict
 
-def setup_definitions(target, description, dont_frag, ipv6, protocol, resolve_on_probe, timeout):
-    
-    definitions = {}
-    definitions['target'] = target
-    definitions['description'] = description
-    definitions['dontfrag'] = str(dont_frag).lower()
-    definitions['af'] = 6 if ipv6 else 4 #set ip version 
-    definitions['type'] = 'traceroute'
-    definitions['protocol'] = protocol
-    definitions['is_oneoff'] = 'true'
-    definitions['resolve_on_probe'] = 'true' if resolve_on_probe else 'false'
-    definitions['timeout'] = timeout
-
-    return definitions
-
-def run(key, data_str):
-
-    headers =  {'content-type': 'application/json', 'accept': 'application/json'}
-    
-    response = requests.post('https://atlas.ripe.net/api/v1/measurement/?key='+key, data_str, headers=headers)
-    response_str = response.text
-
-    return json.loads(response_str)
-
 def setup_probe_value(type, arg_values):
-    """
-    type is the probe type.
-    arg_values is a list of args passed in by user
-    """
+        """
+        type is the probe type.
+        arg_values is a list of args passed in by user
+        """
 
-    if type == 'asn' or type == 'msm':
-        return int(arg_values[0])   #return an integer value
-    elif type == 'probes':
-        return ','.join(arg_values) #return command separated list of probe ids
-    else:
-        return arg_values[0]        #for everything else just return single item from list
+        if type == 'asn' or type == 'msm':
+            return int(arg_values[0])   #return an integer value
+        elif type == 'probes':
+            return ','.join(arg_values) #return command separated list of probe ids
+        else:
+            return arg_values[0]        #for everything else just return single item from list
 
 def handle_single_target(args):
     target = args.target_[0]
     
-    definitions = setup_definitions(target, args.description[0], args.dont_frag, args.ipv6, 
-                                    args.protocol[0], args.resolve_on_probe, args.timeout[0])
+    tr = Traceroute(target)
+    tr.description = args.description[0]
+    tr.dont_frag = args.dont_frag
+    tr.af = 6 if args.ipv6 else 4
+    tr.protocol = args.protocol[0]
+    tr.resolve_on_probe = args.resolve_on_probe
+    tr.timeout = args.timeout[0]
     
-    probes = {}
-    probes['requested'] = args.num_probes
-    probes['type'] = args.probe_type
-    probes['value'] = setup_probe_value(args.probe_type, args.value)
+    tr.num_probes = args.num_probes
+    tr.probe_type = args.probe_type
+    tr.probe_value = setup_probe_value(ars.probe_type, args.value)
 
-    data = {'definitions': [definitions], 'probes': [probes]}
-    return json.dumps(data)
+    return tr.run()
 
 def handle_multi_targets(key, args, target_dict, output_file):
     
