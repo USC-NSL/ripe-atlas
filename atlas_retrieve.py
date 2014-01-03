@@ -51,22 +51,28 @@ class Retrieve(object):
         processed_results = []
 
         for (m_id, data) in fetched_results:
+
+            for traceroute in data:
+                hop_list = []
+                target = traceroute['dst_name']
+                hop_data_list = traceroute['result']
             
-            hop_list = []
-            hop_data_list = data[0]['result']
-            for hop_data in hop_data_list:
-                hop_num = hop_data['hop']
-                hop = hop_data['result'][0]
-                
-                host = hop['from']
-                rtt = hop['rtt']
-                ttl = hop['ttl']
-                
-                hop_list.append((hop_num, (host, rtt, ttl)))
-            
-            hop_list.sort()
-            hop_list = [x[1] for x in hop_list]
-            processed_results.append((m_id,hop_list))
+                #hop_data_list = data[0]['result']
+                for hop_data in hop_data_list:
+                    hop_num = hop_data['hop']
+                    hop = hop_data['result'][0]
+
+                    if 'from' in hop: #if this hop had a response
+                        host = hop['from']
+                        rtt = hop['rtt']
+                        ttl = hop['ttl']
+                        hop_list.append((hop_num, (host, rtt, ttl)))
+                    else:
+                        hop_list.append((hop_num, ('*', 0, 0)))
+
+                hop_list.sort()
+                hop_list = [x[1] for x in hop_list]
+                processed_results.append((m_id, target, hop_list))
 
         return processed_results
             
