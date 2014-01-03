@@ -1,10 +1,12 @@
 #!/usr/bin/python
 from jsonrpclib.SimpleJSONRPCServer import SimpleJSONRPCServer
 import atlas_traceroute
+import atlas_retrieve
 import urllib
 import datetime
 import tempfile
 import os
+import sys
 import threading
 import glob
 import json
@@ -15,14 +17,30 @@ active_file = 'atlas-active-%d-%d-%d'
 
 class TracerouteService(object):
     
-    def __init__(self, port):
+    def __init__(self, port, api_key):
         self.last_active_date = datetime.datetime(1, 1, 1) 
         self.probes = None
         self.port = port
+        self.key = api_key
         self.lock = threading.RLock()
 
     def submit(self):
         return 'submit'
+
+    def status(self, measurement_id):
+        """
+        May be one of
+          0: Specified
+          1: Scheduled
+          2: Ongoing
+          4: Stopped
+          5: Forced to stop
+          6: No suitable probes
+          7: Failed
+          8: Archived
+        """
+        retrieve = atlas_retrieve.Retrieve([measurement_id], self.key)
+        return retrieve.check_status()
 
     def active(self, asn = None):
         
@@ -33,13 +51,14 @@ class TracerouteService(object):
             try:
                 return self.probes[asn]
             except KeyError:
-                return [] #return empty list if this asn is not found
+                return []       #return empty list if this asn is not found
 
     def ases(self):
         return self.probes.keys()
 
     def results(self, measurement_id):
-        return str(measurement_id)
+        retrieve = atlas_retrieve.Retrieve([measurement_id], self.key)
+        return retrieve.fetch_traceroute_results()
 
     def check_active_probes(self):
 
@@ -143,11 +162,19 @@ class TracerouteService(object):
         server.register_function(self.submit, 'submit')
         server.register_function(self.active, 'active')
         server.register_function(self.results, 'results')
+        server.register_function(self.status, 'status')
 
         server.serve_forever()
 
 
 if __name__ == '__main__':
     
-    service = TracerouteService(8080)
+    if len(sys.argv) != 3:
+        sys.stderr.write('Usage: <port> <key>\n')
+        sys.exit(1)
+
+    port = int(sys.argv[1])
+    key = sys.argv[2]
+
+    service = TracerouteService(port, key)
     service.run()
