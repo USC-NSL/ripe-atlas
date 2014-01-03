@@ -11,54 +11,111 @@ import threading
 import glob
 import json
 import itertools
+import logging
+import logging.config
 
-active_probes_url = 'https://atlas.ripe.net/api/v1/probe/?limit=10000&format=txt'
-active_file = 'atlas-active-%d-%d-%d'
+ACTIVE_PROBES_URL = 'https://atlas.ripe.net/api/v1/probe/?limit=10000&format=txt'
+ACTIVE_FILE = 'atlas-active-%d-%d-%d'
 
 class TracerouteService(object):
     
     def __init__(self, port, api_key):
+        self.logger = logging.getLogger(__name__)
         self.last_active_date = datetime.datetime(1, 1, 1) 
         self.probes = None
         self.port = port
         self.key = api_key
         self.lock = threading.RLock()
 
-    def submit(self):
-        return 'submit'
+    def submit(self, probe_list, target):
+        try:
+            self.logger.info('Got submit request for target %s with %s probes' % (target, str(probe_list)))
+
+            tr = atlas_traceroute.Traceroute(target, self.key)
+            tr.num_probes = len(probe_list)
+            tr.probe_type = 'probes'
+            tr.probe_value = probe_list
+
+            response = tr.run()
+            self.logger.info('Atlas response %s' % (str(response)))
+
+            return_value = None
+            if 'error' in response:
+                error_details = response['error']
+                code = error_details['code']
+                message = error_details['message']
+                return_value = ('error', message+' code: '+str(code))
+            elif 'measurements' in response:
+                measurement_list = response['measurements']
+                measurement_list_str = map(str, measurement_list)
+                return_value = ('success', '\n'.join(measurement_list_str))
+            else:
+                return_value = ('error', 'Error processing response: '+str(response))
+
+            self.logger.info('submit returning (%s, %s)' % return_value)
+            return return_value
+        except Exception, e:
+            self.logger.error('Got exception for submit request for target %s with %s probes' % 
+                              (target, str(probe_list)), exc_info=True)
+            raise e
 
     def status(self, measurement_id):
-        """
-        May be one of
-          0: Specified
-          1: Scheduled
-          2: Ongoing
-          4: Stopped
-          5: Forced to stop
-          6: No suitable probes
-          7: Failed
-          8: Archived
-        """
-        retrieve = atlas_retrieve.Retrieve([measurement_id], self.key)
-        return retrieve.check_status()
+        try:
+            self.logger.info('Got status request for measurement_id %d' % (measurement_id))
+            """
+            May be one of
+              0: Specified
+              1: Scheduled
+              2: Ongoing
+              4: Stopped
+              5: Forced to stop
+              6: No suitable probes
+              7: Failed
+              8: Archived
+            """
+            retrieve = atlas_retrieve.Retrieve([measurement_id], self.key)
+            return retrieve.check_status()
+        except Exception, e:
+            self.logger.error('Got exception for status with measurement_id %d' % measurement_id, exc_info=True)
+            raise e
 
     def active(self, asn = None):
-        
-        if asn is None:
-            #flatten list of lists. this is magick.
-            return list(itertools.chain(*self.probes.values()))
-        else:
-            try:
-                return self.probes[asn]
-            except KeyError:
-                return []       #return empty list if this asn is not found
+        try:
+            self.logger.info('Got active request for asn: %s' % str(asn))
+
+            if asn is None:
+                #flatten list of lists. this is magick.
+                return list(itertools.chain(*self.probes.values()))
+            else:
+                try:
+                    return self.probes[asn]
+                except KeyError:
+                    return []       #return empty list if this asn is not found
+        except Exception, e:
+            self.logger.error('Got exception with active request for asn %s' % str(asn), exc_info=True)
+            raise e
 
     def ases(self):
-        return self.probes.keys()
+        try:
+            self.logger.info('Got ases request')
+            return self.probes.keys()
+        except Exception, e:
+            self.logger.error('Got exception for ases request', exc_info=True)
+            raise e
 
     def results(self, measurement_id):
-        retrieve = atlas_retrieve.Retrieve([measurement_id], self.key)
-        return retrieve.fetch_traceroute_results()
+        try:
+            self.logger.info('Got results request for measurement_id: %d' % measurement_id)
+            retrieve = atlas_retrieve.Retrieve([measurement_id], self.key)
+            results = retrieve.fetch_traceroute_results()
+            #logger.info('measurementid: %d results: %s' % (measurement_id, str(results)))
+            return results
+        except Exception, e:
+            self.logger.error('Got exception for results request for measurement_id: %d' % measurement_id, exc_info=True)
+            raise e
+    #
+    #
+    #
 
     def check_active_probes(self):
 
@@ -66,6 +123,7 @@ class TracerouteService(object):
         now = datetime.datetime.now()
 
         if self.probes is None:
+            self.logger.info('No probes configured')
             #this should only happen when we first start up
             
             active_probe_list = glob.glob(tempdir+os.sep+'atlas-active-*')
@@ -73,7 +131,7 @@ class TracerouteService(object):
 
             if len(active_probe_list) > 0:
                 most_recent_file = active_probe_list[-1]
-                print('Most recent active probe file found: '+most_recent_file)
+                self.logger.info('Most recent active probe file found: '+most_recent_file)
 
                 basename = os.path.basename(most_recent_file)
                 chunks = basename.split('-')
@@ -86,35 +144,41 @@ class TracerouteService(object):
 
                 timediff = now - most_recent_date
                 if timediff.days < 1:
-                    self.load_probes(most_recent_file)
-                    self.last_active_date = most_recent_date
+                    try:
+                        self.load_probes(most_recent_file)
+                        self.last_active_date = most_recent_date
+                        self.logger.info('last_active_date for probe file is %s' % self.last_active_date)
+                    except Exception, e:
+                        self.logger.error('Failed to load %s' % most_recent_file, exc_info=True)
+                        self.logger.error('Fetching new file instead')
+                        self.fetch_new_probefile()
                     return
+                else:
+                    self.logger.info('Most recent file was out of date')
             else:
-                print('No active-probe files found')
+                self.logger.info('No active-probe files found')
         
         #first check that we have the latest file for today
         timediff = now - self.last_active_date
         if timediff.days >= 1:
-        
-            save_file_name = active_file % (now.year, now.month, now.day)
-            save_file_path = '%s%s%s' % (tempdir, os.sep, save_file_name)
-            #fetch new active file
-            print('Fetching new active probe file to: '+save_file_path)
-            urllib.urlretrieve(active_probes_url, save_file_path)
-            print('Finished fetching')
-
-            self.load_probes(save_file_path)
-            self.last_active_date = now #update latest time we fetched
-            
+            self.fetch_new_probefile()    
             return
-        
-        #file_name = active_file % (self.last_active_date.year, self.last_active_date.month, self.last_active_date.day)
-        #file_path = '%s%s%s' % (tempdir, os.sep, file_name)
-        #if not os.path.exists(file_path):
-        #    urllib.urlretrieve(active_probes_url, file_path)
-        #    self.last_active_date = now #update latest time we fetched
-        #    self.load_probes(file_path)
-        #    return
+
+    def fetch_new_probefile(self):
+
+        now = datetime.datetime.now()
+        tempdir = tempfile.gettempdir()
+
+        save_file_name = ACTIVE_FILE % (now.year, now.month, now.day)
+        save_file_path = '%s%s%s' % (tempdir, os.sep, save_file_name)
+        #fetch new active file
+        self.logger.info('Fetching new active probe file to: '+save_file_path)
+        urllib.urlretrieve(ACTIVE_PROBES_URL, save_file_path)
+        self.logger.info('Finished fetching')
+
+        self.load_probes(save_file_path)
+        self.last_active_date = now #update latest time we fetched
+        self.logger.info('last_active_date for probe file is %s' % self.last_active_date)
 
     def load_probes(self, file):
         
@@ -128,7 +192,7 @@ class TracerouteService(object):
         active_probes = {}
 
         probes_dict = all_probes['objects']
-        print('Processing '+str(len(probes_dict))+' probes')
+        self.logger.info('Processing '+str(len(probes_dict))+' probes')
         
         for probe in probes_dict:
             try:
@@ -150,7 +214,7 @@ class TracerouteService(object):
         self.probes = active_probes
 
         num_probes = sum(len(l) for l in self.probes.values())
-        print('Loaded: '+file+' with '+str(num_probes)+' active probes')
+        self.logger.info('Loaded: '+file+' with '+str(num_probes)+' active probes')
 
     def run(self):
 
@@ -164,8 +228,23 @@ class TracerouteService(object):
         server.register_function(self.results, 'results')
         server.register_function(self.status, 'status')
 
+        self.logger.info('Starting service on port: %d' % self.port)
         server.serve_forever()
 
+def setup_logging(default_path='logging.json', default_level=logging.INFO, env_key='LOG_CFG'):
+    """
+    Setup logging configuration
+    """
+    path = default_path
+    value = os.getenv(env_key, None)
+    if value:
+        path = value
+    if os.path.exists(path):
+        with open(path, 'rt') as f:
+            config = json.load(f)
+        logging.config.dictConfig(config)
+    else:
+        logging.basicConfig(level=default_level)
 
 if __name__ == '__main__':
     
@@ -175,6 +254,8 @@ if __name__ == '__main__':
 
     port = int(sys.argv[1])
     key = sys.argv[2]
+
+    setup_logging()
 
     service = TracerouteService(port, key)
     service.run()
