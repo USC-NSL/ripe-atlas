@@ -1,5 +1,6 @@
 #!/usr/bin/python
 from jsonrpclib.SimpleJSONRPCServer import SimpleJSONRPCServer
+from SocketServer import ForkingMixIn
 import atlas_traceroute
 import atlas_retrieve
 import urllib
@@ -16,6 +17,9 @@ import logging.config
 
 ACTIVE_PROBES_URL = 'https://atlas.ripe.net/api/v1/probe/?limit=10000&format=txt'
 ACTIVE_FILE = 'atlas-active-%d-%d-%d'
+
+class SimpleForkingJSONRPCServer(ForkingMixIn, SimpleJSONRPCServer):
+    pass
 
 class TracerouteService(object):
     
@@ -220,7 +224,7 @@ class TracerouteService(object):
 
         self.check_active_probes()
 
-        server = SimpleJSONRPCServer(('', self.port))
+        server = SimpleForkingJSONRPCServer(('', self.port))
 
         server.register_function(self.ases, 'ases')
         server.register_function(self.submit, 'submit')
