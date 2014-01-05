@@ -220,7 +220,7 @@ class TracerouteService(object):
 
         self.check_active_probes()
 
-        server = SimpleJSONRPCServer(('localhost', self.port))
+        server = SimpleJSONRPCServer(('', self.port))
 
         server.register_function(self.ases, 'ases')
         server.register_function(self.submit, 'submit')
