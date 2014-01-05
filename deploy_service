@@ -9,7 +9,7 @@ fi
 source ~/.ssh/environment
 
 app="atlas-service"
-port=1421
+port=8080
 host=$1
 version=$2
 
@@ -34,4 +34,5 @@ scp *.py $host:$remote_dir
 #restart
 echo "restarting $app"
 ssh $host "pkill -f $app"
-ssh $host "LOG_CFG=$app/logging.json; nohup $remote_dir/traceroute_service.py $port \$(cat $app/.key) &> $app/log < /dev/null &"
+ssh $host "$app/run $port"
+#ssh $host "LOG_CFG=$app/logging.json; nohup $remote_dir/traceroute_service.py $port \$(cat $app/.key) &> $app/log < /dev/null &"
