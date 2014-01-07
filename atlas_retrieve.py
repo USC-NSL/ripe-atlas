@@ -68,7 +68,7 @@ class Retrieve(object):
                         ttl = hop['ttl']
                         hop_list.append((hop_num, (host, rtt, ttl)))
                     else:
-                        hop_list.append((hop_num, ('*', 0, 0)))
+                        hop_list.append((hop_num, ('* * *', 0, 0)))
 
                 hop_list.sort()
                 hop_list = [x[1] for x in hop_list]
