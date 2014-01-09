@@ -38,7 +38,7 @@ class TracerouteService(object):
             tr = atlas_traceroute.Traceroute(target, self.key)
             tr.num_probes = len(probe_list)
             tr.probe_type = 'probes'
-            tr.probe_value = probe_list
+            tr.probe_value = map(int, probe_list)
 
             response = tr.run()
             self.logger.info('Atlas response %s' % (str(response)))
