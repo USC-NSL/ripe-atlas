@@ -2,8 +2,10 @@
 import json
 import sys
 import requests
+import traceback
 
 URL = 'https://atlas.ripe.net/api/v1/probe/?limit=10000&format=txt'
+keys = ['id', 'asn_v4', 'asn_v6', 'prefix_v4', 'prefix_v6', 'status_name', 'country_code', 'latitude', 'longitude']
 
 def _str(s):
     """
@@ -18,16 +20,41 @@ def _str(s):
 
 def json2tab(probe_list):
 
-    keys = ['id', 'asn_v4', 'asn_v6', 'prefix_v4', 'prefix_v6', 'status_name', 'country_code', 'latitude', 'longitude']
-
+    lines = []
     for probe in probe_list:
         values = map(lambda x: _str(probe[x]), keys)
         line = ' '.join(values)
-        print(line)
+        lines.append(line)
+    return lines
 
 def usage_and_error():
     sys.stderr.write('Usage: <json|tab>\n')
     sys.exit(1)
+
+def load(file):
+    """
+    Returns a tuple with the file format and then a list of probe data
+    """
+    f = open(file)
+    try:
+        data = f.read()
+        try:
+            return json.loads(data)
+        except:
+            #probably not json
+            probe_list = []
+            for line in data.split('\n'):
+                try:
+                    chunks = line.split(' ')
+                    probe_dict = dict(zip(keys, chunks)) #nice!
+                    probe_list.append(probe_dict)
+                except:
+                    sys.stderr.write('Got error loading line: %s\n' % line)
+                    traceback.print_exc(file=sys.stdout)
+                    continue
+            return probe_list
+    finally:
+        f.close()
 
 if __name__ == '__main__':
 
@@ -44,7 +71,7 @@ if __name__ == '__main__':
     if format == 'json':
         print(json.dumps(probe_list, sort_keys=True, indent=4, separators=(',', ': ')))
     else: #
-        json2tab(probe_list)
-        
+        lines = json2tab(probe_list)
+        print('\n'.join(lines))
         
     
