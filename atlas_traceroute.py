@@ -18,7 +18,7 @@ class Traceroute(object):
         self.dont_frag = False
         self.af = 4
         self.protocol = 'ICMP'
-        self.is_onoff = True
+        self.is_oneoff = True
         self.resolve_on_probe = True
         self.timeout = 4000
         
@@ -112,6 +112,7 @@ def setup_probe_value(type, arg_values):
         if type == 'asn' or type == 'msm':
             return int(arg_values[0])   #return an integer value
         elif type == 'probes':
+            arg_values = map(str, arg_values)
             return ','.join(arg_values) #return command separated list of probe ids
         else:
             return arg_values[0]        #for everything else just return single item from list
