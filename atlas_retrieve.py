@@ -9,8 +9,8 @@ class Retrieve(object):
 
     URL = 'https://atlas.ripe.net/api/v1/measurement/'
     
-    def __init__(self, measurement_ids, key):
-        self.measurement_ids = measurement_ids
+    def __init__(self, measurement_id, key):
+        self.measurement_id = measurement_id
         self.key = key
 
     def check_status(self):
@@ -18,61 +18,60 @@ class Retrieve(object):
         status_list = list()
         headers =  {'accept': 'application/json'}
 
-        for measurement_id in self.measurement_ids:
+        #for measurement_id in self.measurement_ids:
             
-            response = requests.get("%s/%s/?key=%s" % (Retrieve.URL, measurement_id, self.key), headers=headers)
-            response_str = response.text
+        response = requests.get("%s/%s/?key=%s" % (Retrieve.URL, self.measurement_id, self.key), headers=headers)
+        response_str = response.text
 
-            results = json.loads(response_str)
-            status = results['status']['name']
-            
-            status_list.append((measurement_id, status))
+        results = json.loads(response_str)
+        status = results['status']['name']
 
-        return status_list
+        return status
 
     def fetch_results(self):
-
+    
         headers =  {'accept': 'application/json'}
-        results_list = list()
+        #results_list = list()
 
-        for measurement_id in self.measurement_ids:
+        #for measurement_id in self.measurement_ids:
             
-            response = requests.get("%s/%s/result/?key=%s" % (Retrieve.URL, measurement_id, self.key), headers=headers)
-            response_str = response.text
+        response = requests.get("%s/%s/result/?key=%s" % (Retrieve.URL, self.measurement_id, self.key), headers=headers)
+        response_str = response.text
             
-            results = json.loads(response_str)            
-            results_list.append((measurement_id, results))
+        results = json.loads(response_str)            
+        #results_list.append((measurement_id, results))
 
-        return results_list
+        return results
 
     def fetch_traceroute_results(self):
         #offer simplified result
-        fetched_results = self.fetch_results()
+        fetched_result = self.fetch_results()
+
         processed_results = []
-
-        for (m_id, data) in fetched_results:
-
-            for traceroute in data:
-                hop_list = []
-                target = traceroute['dst_name']
-                hop_data_list = traceroute['result']
+        for traceroute in fetched_result:
+            hop_list = []
+            target = traceroute['dst_name']
+            probe_id = traceroute['prb_id']
+            hop_data_list = traceroute['result']
             
-                #hop_data_list = data[0]['result']
-                for hop_data in hop_data_list:
-                    hop_num = hop_data['hop']
-                    hop = hop_data['result'][0]
+            #hop_data_list = data[0]['result']
+            for hop_data in hop_data_list:
+                hop_num = hop_data['hop']
+                hop = hop_data['result'][0]
 
-                    if 'from' in hop: #if this hop had a response
-                        host = hop['from']
-                        rtt = hop['rtt']
-                        ttl = hop['ttl']
-                        hop_list.append((hop_num, (host, rtt, ttl)))
-                    else:
-                        hop_list.append((hop_num, ('* * *', 0, 0)))
+                if 'from' in hop: #if this hop had a response
+                    host = hop['from']
+                    rtt = hop['rtt']
+                    ttl = hop['ttl']
+                    hop_list.append((hop_num, (host, rtt, ttl)))
+                else:
+                    hop_list.append((hop_num, ('* * *', 0, 0)))
 
-                hop_list.sort()
-                hop_list = [x[1] for x in hop_list]
-                processed_results.append((m_id, target, hop_list))
+            hop_list.sort()
+            hop_list = [x[1] for x in hop_list]
+            
+            result = {'status': 'finished', 'target': target, 'probe_id': probe_id, 'hops': hop_list}
+            processed_results.append(result)
 
         return processed_results
             

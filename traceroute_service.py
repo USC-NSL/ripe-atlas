@@ -48,15 +48,22 @@ class TracerouteService(object):
                 error_details = response['error']
                 code = error_details['code']
                 message = error_details['message']
-                return_value = ('error', message+' code: '+str(code))
+                self.logger.error('Got error: %s code: %d' % (message, code))
+                #return_value = ('error', message+' code: '+str(code))
+                return_value = -1
             elif 'measurements' in response:
                 measurement_list = response['measurements']
-                measurement_list_str = map(str, measurement_list)
-                return_value = ('success', '\n'.join(measurement_list_str))
+                measurement_id = measurement_list[0]
+                self.logger.info('Got back measurement id: %d' % measurement_id)
+                return_value = measurement_id
+                #measurement_list_str = map(str, measurement_list)
+                #return_value = ('success', '\n'.join(measurement_list_str))
             else:
-                return_value = ('error', 'Error processing response: '+str(response))
+                self.logger.error('Error processing response: %s' % str(response))
+                return_value = -1;
+                #return_value = ('error', 'Error processing response: '+str(response))
 
-            self.logger.info('submit returning (%s, %s)' % return_value)
+            self.logger.info('submit returning %d' % return_value)
             return return_value
         except Exception, e:
             self.logger.error('Got exception for submit request for target %s with %s probes' % 
@@ -66,22 +73,34 @@ class TracerouteService(object):
     def status(self, measurement_id):
         try:
             self.logger.info('Got status request for measurement_id %d' % (measurement_id))
-            """
-            May be one of
-              0: Specified
-              1: Scheduled
-              2: Ongoing
-              4: Stopped
-              5: Forced to stop
-              6: No suitable probes
-              7: Failed
-              8: Archived
-            """
-            retrieve = atlas_retrieve.Retrieve([measurement_id], self.key)
-            return retrieve.check_status()
+            
+            retrieve = atlas_retrieve.Retrieve(measurement_id, self.key)
+            atlas_status = retrieve.check_status()
+            return to_servicestatus(atlas_status)
         except Exception, e:
             self.logger.error('Got exception for status with measurement_id %d' % measurement_id, exc_info=True)
             raise e
+
+    def to_servicestatus(self, atlas_status):
+
+        self.logger.info('mapping atlas_status: %s' % atlas_status)
+
+        convert_dict = {'Specified': 'processing',
+                        'Scheduled': 'processing',
+                        'Ongoing': 'unfinished',
+                        'Stopped': 'finished', 
+                        'Forced to stop': 'forced to stop',
+                        'No suitable probes': 'failed',
+                        'Failed': 'failed',
+                        'Archived': 'finished',
+                        'Stopped AS': 'finished',
+                        'Archived AS': 'finished',
+                        'Archived': 'finished'}
+        try:
+            return convert_dict[atlas_status]
+        except KeyError:
+            self.logger.error('Unable to map atlas_status: %s' % atlas_status)
+            return 'unknown'
 
     def active(self, asn = None):
         try:
