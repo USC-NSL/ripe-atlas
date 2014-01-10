@@ -76,7 +76,7 @@ class TracerouteService(object):
             
             retrieve = atlas_retrieve.Retrieve(measurement_id, self.key)
             atlas_status = retrieve.check_status()
-            return to_servicestatus(atlas_status)
+            return self.to_servicestatus(atlas_status)
         except Exception, e:
             self.logger.error('Got exception for status with measurement_id %d' % measurement_id, exc_info=True)
             raise e
