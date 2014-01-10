@@ -129,7 +129,7 @@ class TracerouteService(object):
     def results(self, measurement_id):
         try:
             self.logger.info('Got results request for measurement_id: %d' % measurement_id)
-            retrieve = atlas_retrieve.Retrieve([measurement_id], self.key)
+            retrieve = atlas_retrieve.Retrieve(measurement_id, self.key)
             results = retrieve.fetch_traceroute_results()
             #logger.info('measurementid: %d results: %s' % (measurement_id, str(results)))
             return results
