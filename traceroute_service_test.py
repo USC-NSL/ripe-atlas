@@ -13,8 +13,9 @@ def assertEquals(expected, actual):
     
     try:
         assert(expected == actual)
-    except AssertionError:
+    except AssertionError, e:
         print('Assertion failed. Expected %s but got %s' % (expected, actual))
+        raise e
 
 def fetch_single_success(server):
     measurement_id = 1404301
@@ -27,7 +28,9 @@ def fetch_single_success(server):
     assertEquals(True, isinstance(results, type([]))) #assert that results are a list
     assertEquals(1, len(results)) #assert that this one has only one entry
 
-    assertEquals(True, isinstance(results[0], type({})))
+    result = results[0]
+    assertEquals(True, isinstance(result, type({})))
+    assertEquals(True, isinstance(result['probe_id'], type(u''))) #assert that probe_id in results is a string
 
 def fetch_multiple_success(server):
     measurement_id = 1404315
@@ -67,7 +70,7 @@ def fetch_active(server):
     assertEquals(True, len(probe_list) > 0)
     assertEquals(True, len(probe_list) < 10000)
     assertEquals(True, isinstance(probe_list, type([])))
-    assertEquals(True, isinstance(probe_list[0], type(1)))
+    assertEquals(True, isinstance(probe_list[0], type(u'')))
 
     ases = server.ases()
     one_as = ases[0]
@@ -75,7 +78,7 @@ def fetch_active(server):
     as_probe_list = server.active(one_as)
     assertEquals(True, len(as_probe_list) > 0)
     assertEquals(True, isinstance(as_probe_list, type([])))
-    assertEquals(True, isinstance(as_probe_list[0], type(1)))
+    assertEquals(True, isinstance(as_probe_list[0], type(u'')))
 
 def submit_failure(server):
     

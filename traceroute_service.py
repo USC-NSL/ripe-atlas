@@ -131,14 +131,16 @@ class TracerouteService(object):
             self.logger.info('Got results request for measurement_id: %d' % measurement_id)
             retrieve = atlas_retrieve.Retrieve(measurement_id, self.key)
             results = retrieve.fetch_traceroute_results()
+
+            for result in results:
+                #convert probe_id to be a string
+                result['probe_id'] = str(result['probe_id']) 
+
             #logger.info('measurementid: %d results: %s' % (measurement_id, str(results)))
             return results
         except Exception, e:
             self.logger.error('Got exception for results request for measurement_id: %d' % measurement_id, exc_info=True)
             raise e
-    #
-    #
-    #
 
     def check_active_probes(self):
 
@@ -219,7 +221,7 @@ class TracerouteService(object):
         
         for probe in probes_dict:
             try:
-                id = probe['id']
+                id = str(probe['id'])
                 status = probe['status_name']
                 #prefix = probe['prefix_v4']
                 #country = probe['country_code']
