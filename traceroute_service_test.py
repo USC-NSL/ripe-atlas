@@ -4,6 +4,7 @@ import os
 import subprocess
 import traceroute_service
 import time
+import tempfile
 
 """
 Integration test for the traceroute service
@@ -56,6 +57,12 @@ def fetch_single_failure(server):
     status = server.status(measurement_id)
     assertEquals('failed', status)
 
+def fetch_mpls_and_host_unreachable(server):
+    
+    measurement_id = 1404437
+    results = server.results(measurement_id)
+    #hopefully no error
+
 def fetch_ases(server):
     
     ases = server.ases()
@@ -91,21 +98,26 @@ if __name__ == '__main__':
     f = open(key_file)
     key = f.read().strip()
     f.close()
-    
+
+    auth_file = tempfile.gettempdir()+os.sep+'service_auth'
+    f = open(auth_file, 'w')
+    f.write('test:test\n')
+    f.close()
+
     try:
 
-        service = traceroute_service.TracerouteService(8080, key)
+        service = traceroute_service.TracerouteService(8080, key, auth_file)
         print('Checking for active probes')
         service.check_active_probes()
         print('Done check for active probes')
         service = None
 
         print('Starting service')
-        subprocess.Popen(['./traceroute_service.py', '8080', key])
+        subprocess.Popen(['./traceroute_service.py', '8080', key, auth_file])
         print('Service started')
         time.sleep(3)
 
-        server = jsonrpclib.Server('http://localhost:8080')
+        server = jsonrpclib.Server('http://test:test@localhost:8080')
     
         fetch_single_success(server)
         fetch_multiple_success(server)
@@ -113,6 +125,7 @@ if __name__ == '__main__':
         fetch_ases(server)
         fetch_active(server)
         submit_failure(server)
+        fetch_mpls_and_host_unreachable(server)
 
     finally:
         print('Killing service')

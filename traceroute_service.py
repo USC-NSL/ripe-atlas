@@ -1,6 +1,7 @@
 #!/usr/bin/python
-from jsonrpclib.SimpleJSONRPCServer import SimpleJSONRPCServer
+from jsonrpclib.SimpleJSONRPCServer import SimpleJSONRPCServer, SimpleJSONRPCRequestHandler
 from SocketServer import ForkingMixIn
+import socket
 import atlas_traceroute
 import atlas_retrieve
 import urllib
@@ -12,6 +13,7 @@ import threading
 import glob
 import json
 import itertools
+import base64
 import logging
 import logging.config
 
@@ -19,17 +21,57 @@ ACTIVE_PROBES_URL = 'https://atlas.ripe.net/api/v1/probe/?limit=10000&format=txt
 ACTIVE_FILE = 'atlas-active-%d-%d-%d'
 
 class SimpleForkingJSONRPCServer(ForkingMixIn, SimpleJSONRPCServer):
-    pass
+    
+    def __init__(self, addr, requestHandler=SimpleJSONRPCRequestHandler,
+                 logRequests=True, encoding=None, bind_and_activate=True,
+                 address_family=socket.AF_INET, auth_map=None):
 
+        self.auth_map = auth_map
+        SimpleJSONRPCServer.__init__(self, addr, requestHandler, logRequests,
+                                     encoding, bind_and_activate, address_family)
+
+class SecuredHandler(SimpleJSONRPCRequestHandler):
+
+    def __init__(self, request, client_address, server, client_digest=None):
+        self.logger = logging.getLogger(__name__)
+        self.auth_map = server.auth_map
+        SimpleJSONRPCRequestHandler.__init__(self, request, client_address, server)
+        self.client_digest = client_digest
+
+    def do_POST(self):
+
+        if self.auth_map != None:
+            if self.headers.has_key('authorization') and self.headers['authorization'].startswith('Basic '):
+                authenticationString = base64.b64decode(self.headers['authorization'].split(' ')[1])
+                if authenticationString.find(':') != -1:
+                    username, password = authenticationString.split(':', 1)
+                    self.logger.info('Got request from %s:%s' % (username, password))
+
+                    if self.auth_map.has_key(username) and self.verifyPassword(username, password):
+                        return SimpleJSONRPCRequestHandler.do_POST(self)
+                    else:
+                        self.logger.error('Authentication failed for %s:%s' % (username, password))
+            
+            self.logger.error('Authentication failed')
+            self.send_response(401)
+            self.end_headers()
+            return False
+
+        return SimpleJSONRPCRequestHandler.do_POST(self)
+
+    def verifyPassword(self, username, givenPassword):
+        return self.auth_map[username] == givenPassword
+    
 class TracerouteService(object):
     
-    def __init__(self, port, api_key):
+    def __init__(self, port, api_key, auth_map):
         self.logger = logging.getLogger(__name__)
         self.last_active_date = datetime.datetime(1, 1, 1) 
         self.probes = None
         self.port = port
         self.key = api_key
         self.lock = threading.RLock()
+        self.auth_map = auth_map
 
     def submit(self, probe_list, target):
         try:
@@ -245,7 +287,7 @@ class TracerouteService(object):
 
         self.check_active_probes()
 
-        server = SimpleForkingJSONRPCServer(('', self.port))
+        server = SimpleForkingJSONRPCServer(('', self.port), requestHandler=SecuredHandler, auth_map=self.auth_map)
 
         server.register_function(self.ases, 'ases')
         server.register_function(self.submit, 'submit')
@@ -271,16 +313,28 @@ def setup_logging(default_path='logging.json', default_level=logging.INFO, env_k
     else:
         logging.basicConfig(level=default_level)
 
+def load_auth(auth_file):
+    auth_map = {}
+    
+    with open(auth_file) as f:
+        for line in f:
+            (user, password) = line.strip().split(':')
+            auth_map[user] = password
+    
+    return auth_map
+
 if __name__ == '__main__':
     
-    if len(sys.argv) != 3:
-        sys.stderr.write('Usage: <port> <key>\n')
+    if len(sys.argv) != 4:
+        sys.stderr.write('Usage: <port> <key> <auth_file>\n')
         sys.exit(1)
 
     port = int(sys.argv[1])
     key = sys.argv[2]
-
+    auth_file = sys.argv[3]
+    
     setup_logging()
+    auth_map = load_auth(auth_file)
 
-    service = TracerouteService(port, key)
+    service = TracerouteService(port, key, auth_map)
     service.run()
