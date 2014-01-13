@@ -57,14 +57,23 @@ class Retrieve(object):
             #hop_data_list = data[0]['result']
             for hop_data in hop_data_list:
                 hop_num = hop_data['hop']
-                hop = hop_data['result'][0]
 
-                if 'from' in hop: #if this hop had a response
-                    host = hop['from']
-                    rtt = hop['rtt']
-                    ttl = hop['ttl']
-                    hop_list.append((hop_num, (host, rtt, ttl)))
-                else:
+                #hop = hop_data['result'][0]
+                hop_found = False
+                for hop in hop_data['result']: #usually 3 results for each hop
+                    if 'from' in hop: #if this hop had a response
+                        host = hop['from']
+                        #rtt can sometimes be missing if there was a host 
+                        #unreachable error
+                        rtt = hop.get('rtt', -1.0)
+                        ttl = hop.get('ttl', -1.0)
+                        hop_list.append((hop_num, (host, rtt, ttl)))
+                        hop_found = True
+                        break
+                
+                #if we didn't find a response for this hop then 
+                #fill in with anonymous router
+                if not hop_found:
                     hop_list.append((hop_num, ('* * *', 0, 0)))
 
             hop_list.sort()
