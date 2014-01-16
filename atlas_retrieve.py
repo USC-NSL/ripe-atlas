@@ -9,11 +9,12 @@ class Retrieve(object):
 
     URL = 'https://atlas.ripe.net/api/v1/measurement'
     
-    def __init__(self, measurement_id, key=None, start=None, stop=None):
+    def __init__(self, measurement_id, key=None, start=None, stop=None, sess=None):
         self.measurement_id = measurement_id
         self.key = key
         self.start = start
         self.stop = stop
+        self.sess = sess if sess else requests
 
     def check_status(self):
 
@@ -23,8 +24,8 @@ class Retrieve(object):
         req_url = '%s/%s/%s' % (Retrieve.URL, self.measurement_id, '?fields=status')
         if self.key:
             req_url += '&key=%s' % self.key
-
-        response = requests.get(req_url, headers=headers)
+        
+        response = self.sess.get(req_url, headers=headers)
         response_str = response.text
 
         results = json.loads(response_str)
@@ -42,7 +43,7 @@ class Retrieve(object):
         if self.key:
             req_url += '&key=%s' % self.key
 
-        response = requests.get(req_url, headers=headers)
+        response = self.sess.get(req_url, headers=headers)
         response_str = response.text
             
         results = json.loads(response_str)

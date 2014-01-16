@@ -11,7 +11,7 @@ key_loc = '~/.atlas/auth'
 
 class Traceroute(object):
 
-    def __init__(self, target, key):
+    def __init__(self, target, key, sess=None):
 
         self.target = target
         self.description = ''
@@ -27,6 +27,7 @@ class Traceroute(object):
         self.probe_value = 'WW'
         
         self.key = key
+        self.sess = sess if sess else requests
 
     def setup_definitions(self):
     
@@ -64,7 +65,7 @@ class Traceroute(object):
 
         headers =  {'content-type': 'application/json', 'accept': 'application/json'}
     
-        response = requests.post('https://atlas.ripe.net/api/v1/measurement/?key='+key, data_str, headers=headers)
+        response = self.sess.post('https://atlas.ripe.net/api/v1/measurement/?key='+key, data_str, headers=headers)
         response_str = response.text
 
         return json.loads(response_str)

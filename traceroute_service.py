@@ -16,6 +16,7 @@ import itertools
 import base64
 import logging
 import logging.config
+import requests
 
 ACTIVE_PROBES_URL = 'https://atlas.ripe.net/api/v1/probe/?limit=10000&format=txt'
 ACTIVE_FILE = 'atlas-active-%d-%d-%d'
@@ -73,11 +74,15 @@ class TracerouteService(object):
         self.lock = threading.RLock()
         self.auth_map = auth_map
 
+        self.sess = requests.Session()
+        adapter = requests.adapters.HTTPAdapter(max_retries=3, pool_connections=20, pool_maxsize=200)
+        self.sess.mount('https://', adapter)
+
     def submit(self, probe_list, target):
         try:
             self.logger.info('Got submit request for target %s with %s probes' % (target, str(probe_list)))
 
-            tr = atlas_traceroute.Traceroute(target, self.key)
+            tr = atlas_traceroute.Traceroute(target, self.key, sess=self.sess)
             tr.num_probes = len(probe_list)
             tr.probe_type = 'probes'
             tr.probe_value = atlas_traceroute.setup_probe_value('probes', probe_list)
@@ -92,7 +97,12 @@ class TracerouteService(object):
                 message = error_details['message']
                 self.logger.error('Got error: %s code: %d' % (message, code))
                 #return_value = ('error', message+' code: '+str(code))
-                return_value = -1
+                if code == 103: #concurrent measurement limit
+                    return_value = -2
+                elif code == 104: #likely too many measurements running to a single target
+                    return_value = -3
+                else:
+                    return_value = -1
             elif 'measurements' in response:
                 measurement_list = response['measurements']
                 measurement_id = measurement_list[0]
@@ -116,7 +126,7 @@ class TracerouteService(object):
         try:
             self.logger.info('Got status request for measurement_id %d' % (measurement_id))
             
-            retrieve = atlas_retrieve.Retrieve(measurement_id, self.key)
+            retrieve = atlas_retrieve.Retrieve(measurement_id, self.key, sess=self.sess)
             atlas_status = retrieve.check_status()
             return self.to_servicestatus(atlas_status)
         except Exception, e:
@@ -171,7 +181,7 @@ class TracerouteService(object):
     def results(self, measurement_id):
         try:
             self.logger.info('Got results request for measurement_id: %d' % measurement_id)
-            retrieve = atlas_retrieve.Retrieve(measurement_id, self.key)
+            retrieve = atlas_retrieve.Retrieve(measurement_id, self.key, sess=self.sess)
             results = retrieve.fetch_traceroute_results()
 
             for result in results:

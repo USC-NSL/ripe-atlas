@@ -90,7 +90,7 @@ def fetch_active(server):
 def submit_failure(server):
     
     measurement_id = server.submit([], '8.8.8.8')
-    assertEquals(True, measurement_id == -1)
+    assertEquals(True, measurement_id < 0) #some error code
 
 if __name__ == '__main__':
     
@@ -105,7 +105,7 @@ if __name__ == '__main__':
     f.close()
 
     try:
-
+        
         service = traceroute_service.TracerouteService(8080, key, auth_file)
         print('Checking for active probes')
         service.check_active_probes()
