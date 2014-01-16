@@ -7,20 +7,24 @@ import requests
 
 class Retrieve(object):
 
-    URL = 'https://atlas.ripe.net/api/v1/measurement/'
+    URL = 'https://atlas.ripe.net/api/v1/measurement'
     
-    def __init__(self, measurement_id, key):
+    def __init__(self, measurement_id, key=None, start=None, stop=None):
         self.measurement_id = measurement_id
         self.key = key
+        self.start = start
+        self.stop = stop
 
     def check_status(self):
 
         status_list = list()
         headers =  {'accept': 'application/json'}
+        
+        req_url = '%s/%s/%s' % (Retrieve.URL, self.measurement_id, '?fields=status')
+        if self.key:
+            req_url += '&key=%s' % self.key
 
-        #for measurement_id in self.measurement_ids:
-            
-        response = requests.get("%s/%s/?key=%s" % (Retrieve.URL, self.measurement_id, self.key), headers=headers)
+        response = requests.get(req_url, headers=headers)
         response_str = response.text
 
         results = json.loads(response_str)
@@ -31,15 +35,17 @@ class Retrieve(object):
     def fetch_results(self):
     
         headers =  {'accept': 'application/json'}
-        #results_list = list()
 
-        #for measurement_id in self.measurement_ids:
-            
-        response = requests.get("%s/%s/result/?key=%s" % (Retrieve.URL, self.measurement_id, self.key), headers=headers)
+        req_url = '%s/%s/result/?' % (Retrieve.URL, self.measurement_id) 
+        if self.start and self.stop:
+            req_url += '&start=%d&stop=%d' % (self.start, self.stop)
+        if self.key:
+            req_url += '&key=%s' % self.key
+
+        response = requests.get(req_url, headers=headers)
         response_str = response.text
             
-        results = json.loads(response_str)            
-        #results_list.append((measurement_id, results))
+        results = json.loads(response_str)
 
         return results
 
@@ -50,6 +56,7 @@ class Retrieve(object):
         processed_results = []
         for traceroute in fetched_result:
             hop_list = []
+            
             target = traceroute['dst_name']
             probe_id = traceroute['prb_id']
             hop_data_list = traceroute['result']
