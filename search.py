@@ -13,7 +13,7 @@ dt_format = '%Y-%m-%d %H:%M:%S'
 HOUR = 3600
 DAY = 24 * HOUR
 WEEK = DAY * 7
-MONTH = 30 * DAY
+MONTH = 30 * DAY #No.
 
 class Search(object):
 
@@ -37,11 +37,13 @@ class Search(object):
         if self.param and self.value:
             self.initial_url += '&'+param+'='+value
         if self.start_time:
-            start_str = datetime.datetime.fromtimestamp(start_time, UTC).strftime(dt_format)
-            self.initial_url += '&start_time__gte='+str(start_str)
+            self.initial_url += '&start_time__gte='+str(start_time)
+            #start_str = datetime.datetime.fromtimestamp(start_time, UTC).strftime(dt_format)
+            #self.initial_url += '&start_time__gte='+str(start_str)
         if self.end_time:
-            end_str = datetime.datetime.fromtimestamp(end_time, UTC).strftime(dt_format)
-            self.initial_url += '&stop_time__lte='+str(end_str)
+            self.initial_url += '&stop_time__lte='+str(end_time)
+            #end_str = datetime.datetime.fromtimestamp(end_time, UTC).strftime(dt_format)
+            #self.initial_url += '&stop_time__lte='+str(end_str)
 
         self.max_requests = None #largely useful for debugging
         self.req_count = 0
