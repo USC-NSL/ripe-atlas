@@ -1,6 +1,7 @@
 #!/usr/bin/python
 from jsonrpclib.SimpleJSONRPCServer import SimpleJSONRPCServer, SimpleJSONRPCRequestHandler
 from SocketServer import ForkingMixIn
+from threading import Timer
 import socket
 import atlas_traceroute
 import atlas_retrieve
@@ -17,9 +18,11 @@ import base64
 import logging
 import logging.config
 import requests
+import time
 
 ACTIVE_PROBES_URL = 'https://atlas.ripe.net/api/v1/probe/?limit=10000&format=txt'
-ACTIVE_FILE = 'atlas-active-%d-%d-%d'
+ACTIVE_FILE = 'atlas-active-%d-%d-%d-%d-%d-%d'
+MISSING_PROBE_ERR = 'Your selection of probes contains at least one probe that is unavailable'
 
 class SimpleForkingJSONRPCServer(ForkingMixIn, SimpleJSONRPCServer):
     
@@ -73,6 +76,8 @@ class TracerouteService(object):
         self.key = api_key
         self.lock = threading.RLock()
         self.auth_map = auth_map
+        self.active_probe_interval = 3600
+        self.fetching_now = False
 
         self.sess = requests.Session()
         adapter = requests.adapters.HTTPAdapter(max_retries=3, pool_connections=20, pool_maxsize=200)
@@ -100,7 +105,23 @@ class TracerouteService(object):
                 if code == 103: #concurrent measurement limit
                     return_value = -2
                 elif code == 104: #likely too many measurements running to a single target
-                    return_value = -3
+                    if message == MISSING_PROBE_ERR:
+                        #may need to fetch probes again
+                        if not self.fetching_now:
+                            self.logger.info('User submitted unavailable probe. Fetching new probefile') 
+                            self.fetch_new_probefile()
+                        else:
+                            """
+                            This could be bad. If another unavailable probe request has already initiated the request
+                            then we need to block returning until the update has returned
+                            """
+                            self.logger.info('Delaying return until fetching new probe file completes')
+                            while self.fetching_now:
+                                time.sleep(0.5)
+
+                        return_value = -3
+                    else:
+                        return_value = -4
                 else:
                     return_value = -1
             elif 'measurements' in response:
@@ -108,12 +129,9 @@ class TracerouteService(object):
                 measurement_id = measurement_list[0]
                 self.logger.info('Got back measurement id: %d' % measurement_id)
                 return_value = measurement_id
-                #measurement_list_str = map(str, measurement_list)
-                #return_value = ('success', '\n'.join(measurement_list_str))
             else:
                 self.logger.error('Error processing response: %s' % str(response))
                 return_value = -1;
-                #return_value = ('error', 'Error processing response: '+str(response))
 
             self.logger.info('submit returning %d' % return_value)
             return return_value
@@ -216,11 +234,14 @@ class TracerouteService(object):
                 year = int(chunks[2])
                 month = int(chunks[3])
                 day = int(chunks[4])
+                hour = int(chunks[5])
+                minute = int(chunks[6])
+                second = int(chunks[7])
 
-                most_recent_date = datetime.datetime(year, month, day)
+                most_recent_date = datetime.datetime(year, month, day, hour, minute, second)
 
                 timediff = now - most_recent_date
-                if timediff.days < 1:
+                if timediff.seconds < self.active_probe_interval:
                     try:
                         self.load_probes(most_recent_file)
                         self.last_active_date = most_recent_date
@@ -237,25 +258,41 @@ class TracerouteService(object):
         
         #first check that we have the latest file for today
         timediff = now - self.last_active_date
-        if timediff.days >= 1:
-            self.fetch_new_probefile()    
+        if timediff.seconds >= self.active_probe_interval:
+            self.fetch_new_probefile()
             return
 
+    def schedule_probe_check(self):
+        self.logger.info('running check for active probes')
+        self.check_active_probes()
+        self.logger.info('rescheduling probe check')
+        Timer(self.active_probe_interval, self.schedule_probe_check).start()	
+
     def fetch_new_probefile(self):
+        
+        if self.fetching_now:
+            self.logging.error('attempted to fetch new probe file in another process')
+            return
+        
+        self.fetching_now = True
+        try:
+            now = datetime.datetime.now()
+            self.logger.info('Started fetching new probe file at %s' % str(now))
+            tempdir = tempfile.gettempdir()
 
-        now = datetime.datetime.now()
-        tempdir = tempfile.gettempdir()
+            save_file_name = ACTIVE_FILE % (now.year, now.month, now.day, now.hour, now.minute, now.second)
+            save_file_path = '%s%s%s' % (tempdir, os.sep, save_file_name)
+            #fetch new active file
+            self.logger.info('Fetching new active probe file to: '+save_file_path)
+            urllib.urlretrieve(ACTIVE_PROBES_URL, save_file_path)
+            self.logger.info('Finished fetching at %s' % str(datetime.datetime.now()))
 
-        save_file_name = ACTIVE_FILE % (now.year, now.month, now.day)
-        save_file_path = '%s%s%s' % (tempdir, os.sep, save_file_name)
-        #fetch new active file
-        self.logger.info('Fetching new active probe file to: '+save_file_path)
-        urllib.urlretrieve(ACTIVE_PROBES_URL, save_file_path)
-        self.logger.info('Finished fetching')
-
-        self.load_probes(save_file_path)
-        self.last_active_date = now #update latest time we fetched
-        self.logger.info('last_active_date for probe file is %s' % self.last_active_date)
+            self.load_probes(save_file_path)
+            self.logger.info('Finished loading new probe file')
+            self.last_active_date = now #update latest time we fetched
+            self.logger.info('last_active_date for probe file is %s' % self.last_active_date)
+        finally:
+            self.fetching_now = False
 
     def load_probes(self, file):
         
@@ -287,7 +324,9 @@ class TracerouteService(object):
             except:
                 traceback.print_exc(file=sys.stdout)
                 continue
-
+        
+        #I'm *pretty sure* that assignments in Python are atomic
+        #Otherwise, this could cause some pain
         self.probes = active_probes
 
         num_probes = sum(len(l) for l in self.probes.values())
@@ -295,7 +334,7 @@ class TracerouteService(object):
 
     def run(self):
 
-        self.check_active_probes()
+        self.schedule_probe_check()
 
         server = SimpleForkingJSONRPCServer(('', self.port), requestHandler=SecuredHandler, auth_map=self.auth_map)
 
