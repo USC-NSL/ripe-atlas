@@ -16,8 +16,20 @@ class Retrieve(object):
         self.stop = stop
         self.sess = sess if sess else requests
 
-    def check_status(self):
+    def check_status(self): 
+        
+        """
+        It turns out that the data is actually available way before the status
+        page is updated so we check that first. If the returned result list is 
+        not empty then we assume the measurement is complete and has been successful.
+        """
+        #looks like byte range is currently not accepted
+        fetch_headers = {'accept':'application/json', 'range':'bytes=0-2'} 
+        results = self.fetch_results(fetch_headers)
+        if len(results) > 0: #lolhax
+            return 'Stopped'
 
+        #fall back to status request
         status_list = list()
         headers =  {'accept': 'application/json'}
         
@@ -33,9 +45,7 @@ class Retrieve(object):
 
         return status
 
-    def fetch_results(self):
-    
-        headers =  {'accept': 'application/json'}
+    def fetch_results(self, headers={'accept':'application/json'}):
 
         req_url = '%s/%s/result/?' % (Retrieve.URL, self.measurement_id) 
         if self.start and self.stop:
