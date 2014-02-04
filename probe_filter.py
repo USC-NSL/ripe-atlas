@@ -27,6 +27,33 @@ class Filter(object):
         #filtered is a list of (distance, probe) tuples so just extract the probes
         return zip(*filtered)[1]
 
+    def separated_by(self, distance):
+        import hmvp
+    
+        asn_probes = {}
+        #separate probes by asn
+        for probe in self.probe_list:
+            try:
+                try:
+                    asn = probe['asn_v4']
+                except:
+                    continue                
+
+                asn_probes[asn].append(probe)
+            except KeyError:
+                asn_probes[asn] = [probe]
+        
+        """
+        For each set of probes in each ASN,  
+        """ 
+        filtered_probes = []      
+        for asn, probe_list in asn_probes.items():
+            points =  [(p['latitude'], p['longitude']) for p in probe_list]
+            filtered = hmvp.distance.dist_filter(points, probe_list, distance)
+            filtered_probes.extend(filtered)
+    
+        return filtered_probes    
+
 if __name__ == '__main__':
     
     if len(sys.argv) != 5:

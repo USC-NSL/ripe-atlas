@@ -123,31 +123,4 @@ class Retrieve(object):
             
             #TODO finish this
 
-"""
-if __name__ == '__main__':
 
-    authfile = "%s/.atlas/auth" % os.environ['HOME']
-
-    if not os.path.exists(authfile):
-        raise CredentialsNotFound(authfile)
-
-    auth = open(authfile)
-    key = auth.readline()[:-1]
-    auth.close()
-
-    if len(sys.argv) != 2:
-        sys.stderr.write("Usage: <measurement_id_file>\n")
-        sys.exit(1)
-
-    measurement_file = sys.argv[1]
-
-    measurement_ids = set()
-
-    f = open(measurement_file)
-    for line in f:
-        id = line.strip()
-        measurement_ids.add(id)
-    f.close()
-
-    fetch_results(measurement_ids)
-"""

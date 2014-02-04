@@ -34,6 +34,9 @@ def usage_and_error():
     sys.stderr.write('Usage: <json|tab>\n')
     sys.exit(1)
 
+def filter_active(probe_list):
+    return filter(lambda x: x['status_name'] == 'Connected', probe_list)
+
 def loadtab(data):
     types = [_int, _int, _int, str, str, str, str, float, float]
     probe_list = []
@@ -75,6 +78,13 @@ def load(file):
             return loadtab(data)
     finally:
         f.close()
+
+def dump(probe_list, filename):
+    probe_values = [' '.join(map(str, x.values())) for x in probe_list]
+    lines = '\n'.join(probe_values)
+    f = open(filename, 'w')
+    f.write(lines)
+    f.close()
 
 if __name__ == '__main__':
 

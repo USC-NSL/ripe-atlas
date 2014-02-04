@@ -39,11 +39,11 @@ class Atlas:
             target = chunks[0]
             probes = chunks[1:]
         
-            if target in self.target_list:
-                sys.stderr.write('Already saw target %s\n' % target)
-                continue
+            #if target in self.target_list:
+            #    sys.stderr.write('Already saw target %s\n' % target)
+            #    continue
 
-            self.target_list[target] = probes
+            self.target_list.append((target, probes))
         f.close()       
 
         """
@@ -83,7 +83,7 @@ class Atlas:
         if self.token and self.session_id:
             self.headers.append(('Cookie', 'JSESSIONID='+self.session_id+'; crowd.token_key='+self.token+'; csrftoken='+self.token))
 
-    def runall(self, req, description):
+    def runall(self, req, description, interval):
         timestr = time.strftime('%Y-%m-%d %H:%M:%S')
 
         target_len = len(self.target_list)
@@ -95,29 +95,37 @@ class Atlas:
 
             url = 'http://'+target+'/'+req
 
-            try:
-                response = self.run(probe_list, url, description) 
-            except:
-                traceback.print_exc(file=sys.stderr)
-                sys.stderr.write('Got some kind of network exception. Sleeping for '+str(self.sleep)+'\n')
-                time.sleep(self.sleep)
-                continue
+            """
+            The maxmimum number of probes per requet is 500 so we need to break
+            this is up into several requests.
+            """
+            probe_list_chunks = [probe_list[x:x+500] for x in xrange(0, len(probe_list), 500)]
+            for probe_list_chunk in probe_list_chunks:
+            
+                try:
+                    response = self.run(probe_list_chunk, url, description, interval) 
+                except:
+                    traceback.print_exc(file=sys.stderr)
+                    sys.stderr.write('Got some kind of network exception. Sleeping for '+str(self.sleep)+'\n')
+                    time.sleep(self.sleep)
+                    continue
 
-            if not response['success']:
-                sys.stderr.write(response['errorMessage']+'\n')
-                sys.stderr.write('Sleeping for '+str(self.sleep)+'\n')
-                time.sleep(self.sleep)
-            else:
-                i += 1
-                sys.stderr.write(str(i)+'/'+str(target_len)+'\n')
+                if not response['success']:
+                    sys.stderr.write(response['errorMessage']+'\n')
+                    sys.stderr.write('Sleeping for '+str(self.sleep)+'\n')
+                    time.sleep(self.sleep)
+                else:
+                    i += 1
+                    sys.stderr.write(str(i)+'/'+str(target_len)+'\n')
 
-    def run(self, probe_list, url, description):
+    def run(self, probe_list, url, description, interval):
 
         probe_list_str = ','.join(probe_list)
+        isoneoff = 'on' if interval == '-1' else 'off'
 
         data = {}
         data['csrfmiddlewaretoken'] = self.token
-        data['data'] = '{"oneoff":"on","types":[{"intvl":"900","method":"method_get","httpver":"httpver11","headbytes":"","useragent":"Mozilla","url":"'+url+'","public":"1","descr":"'+description+'","typeid":"httpget"}],"sources":[{"probesreqlist":['+probe_list_str+'],"typeid":"probes"}]}'
+        data['data'] = '{"oneoff":"%s","types":[{"intvl":"%s","method":"method_get","httpver":"httpver11","headbytes":"","useragent":"Mozilla","url":"%s","public":"1","descr":"%s","typeid":"httpget"}],"sources":[{"probesreqlist":["%s"],"typeid":"probes"}]}' % (isoneoff, interval, url, description, probe_list_str)
         
         response = self.pool.request('POST', new_url, data, self.headers)
         response_str = response.data
@@ -125,8 +133,8 @@ class Atlas:
 
 if __name__ == '__main__':
 
-    if len(sys.argv) != 6:
-        sys.stderr.write('Usage: <username> <password> <probeid-ip-file> <request (search?q=dogs)> <collection-identifier>\n')
+    if len(sys.argv) != 7:
+        sys.stderr.write('Usage: <username> <password> <probeid-ip-file> <request (search?q=dogs)> <collection-identifier> <repeat-interval-secs (-1 for one off)>\n')
         sys.exit(1)
 
     user = sys.argv[1]
@@ -134,6 +142,7 @@ if __name__ == '__main__':
     probe_file = sys.argv[3]
     req = sys.argv[4]
     description = sys.argv[5]
+    repeat_interval = sys.argv[6]
 
     http = Atlas(user, password, probe_file)
-    http.runall(req, description)
+    http.runall(req, description, repeat_interval)
