@@ -121,17 +121,21 @@ class Atlas:
     def run(self, probe_list, url, description, interval):
 
         probe_list_str = ','.join(probe_list)
-        isoneoff = 'on' if interval == '-1' else 'off'
+        isoneoff = '"oneoff":"on",' if interval == '-1' else ''
         if interval == '-1':
             interval = '900' #change to something valid
 
+        """ Without oneoff
+        {"types":[{"intvl":"900","method":"method_get","httpver":"httpver11","headbytes":"","useragent":"httpget for atlas.ripe.net","url":"http://fi-hel-as3292.anchors.atlas.ripe.net","public":"1","descr":"http://fi-hel-as3292.anchors.atlas.ripe.net","typeid":"httpget"}],"sources":[{"probesreqlist":[4788,4906],"typeid":"probes"}]}
         """
+
+        """ With oneoff
         data:{"oneoff":"on","types":[{"intvl":"900","method":"method_get","httpver":"httpver11","headbytes":"","useragent":"httpget for atlas.ripe.net","url":"http://gr-ath-as5408.anchors.atlas.ripe.net","public":"1","descr":"http://gr-ath-as5408.anchors.atlas.ripe.net","typeid":"httpget"}],"sources":[{"probesreqlist":[3775,3992],"typeid":"probes"}]}
         """
 
         data = {}
         data['csrfmiddlewaretoken'] = self.token
-        data['data'] = '{"oneoff":"%s","types":[{"intvl":"%s","method":"method_get","httpver":"httpver11","headbytes":"","useragent":"Mozilla","url":"%s","public":"1","descr":"%s","typeid":"httpget"}],"sources":[{"probesreqlist":[%s],"typeid":"probes"}]}' % (isoneoff, interval, url, description, probe_list_str)
+        data['data'] = '{%s"types":[{"intvl":"%s","method":"method_get","httpver":"httpver11","headbytes":"","useragent":"Mozilla","url":"%s","public":"1","descr":"%s","typeid":"httpget"}],"sources":[{"probesreqlist":[%s],"typeid":"probes"}]}' % (isoneoff, interval, url, description, probe_list_str)
         
         response = self.pool.request('POST', new_url, data, self.headers)
         response_str = response.data
