@@ -46,6 +46,11 @@ if __name__ == '__main__':
         sys.stderr.write('No targets defined\n')
         sys.exit(1)
 
+    for target, probe_list in target_dict.items():
+        if len(probe_list) > 500:
+            sys.stderr.write('There are more than 500 probes for target %s\n. This measurement would have failed.' % target)
+            sys.exit(1)
+    
     try:
         outf = open(outfile, 'w')
 
