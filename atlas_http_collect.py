@@ -15,12 +15,15 @@ login_test_url = 'https://atlas.ripe.net/atlas/user'
 
 class Atlas:
 
-    def __init__(self, username, password, input_file):
+    def __init__(self, username, password):
         self.username = username
         self.password = password
 
         self.cookiejar = cookielib.LWPCookieJar()
-        self.cookiejar.load(cookie_filename)
+        try:
+            self.cookiejar.load(cookie_filename)
+        except:
+            pass
 
         self.opener = urllib2.build_opener(
             urllib2.HTTPRedirectHandler(),
@@ -40,22 +43,7 @@ class Atlas:
             self.cookiejar.save(cookie_filename, ignore_discard=True, ignore_expires=True)
         else:
             sys.stderr.write('Yep.\n')
-        
-
-        inputs = list()
-        f = open(file)
-        for line in f:
-            description = line.strip()
-            inputs.append(description)
-        f.close()
     
-        for desc in inputs:
-            measurement_ids = self.collect(desc)
-            for m_id in measurement_ids:
-                jayson = self.fetch_measurement(m_id)
-                print(jayson)
-
-
     def loggedin(self):
         response = self.opener.open(login_test_url)
         resp_str = ''.join(response.readlines())
@@ -80,7 +68,7 @@ class Atlas:
         data = {}
         data['_dc'] = str(millis)
         data['start'] = '0'
-        data['limit'] = '1000'
+        data['limit'] = '10000'
         data['sort'] = 'msm_id'
         data['dir'] = 'ASC'
         data['filter'] = '[{"type":"string","value":"'+description+'","field":"descr"}]'
@@ -109,11 +97,17 @@ class Atlas:
 if __name__ == '__main__':
 
     if len(sys.argv) != 4:
-        sys.stderr.write('Usage: <username> <password> <description-file>\n')
+        sys.stderr.write('Usage: <username> <password> <description>\n')
         sys.exit(1)
 
-    filename = sys.argv[1]
-    username = sys.argv[2]
-    password = sys.argv[3]
+    username = sys.argv[1]
+    password = sys.argv[2]
+    description = sys.argv[3]
 
-    test = Atlas(username, password, filename)
+    test = Atlas(username, password)
+    measurement_ids = test.collect(description)
+    
+    str_ids = map(str, measurement_ids)
+    output = '\n'.join(str_ids)
+    print(output)
+

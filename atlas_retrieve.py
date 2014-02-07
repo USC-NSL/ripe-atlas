@@ -101,7 +101,43 @@ class Retrieve(object):
             processed_results.append(result)
 
         return processed_results
-            
+    
+    def parse_dns_results(self, json_results):
+        results = []
+        
+        for line in json_results.split('\n'):
+            line = line.strip()
+
+            record = json.loads(line)
+
+            if 'result' not in record:
+                continue
+
+            try:
+                probeid = record['prb_id']
+                timestamp = record['timestamp']
+                r = record['result']
+
+                abuf = r['abuf']
+                dnsmsg = dns.message.from_wire(base64.b64decode(abuf))
+
+                for rr in dnsmsg.answer:
+                    arecstr = str(rr)
+                    a_record_lines = arecstr.split('\n')
+
+                    ip_list = list()
+
+                    for a_record in a_record_lines:
+                        a_record_chunks = a_record.split(' ')
+                        ip_list.append(a_record_chunks[4])
+
+                    dns_results = ' '.join(ip_list)
+                    results.append((probeid, timestamp, dns_results))
+            except:
+                continue
+
+        return results
+        
     def fetch_ping_results(self):
 
         results = self.fetch_results()
