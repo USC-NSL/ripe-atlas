@@ -1,9 +1,12 @@
 #!/usr/bin/python
 import sys
+import time
+import socket
 import traceback
 import measure_baseclass
 from measure_baseclass import MeasurementBase
 from measure_baseclass import load_input, readkey, process_response
+from measure_baseclass import SLEEP_TIME
 
 class Ping(MeasurementBase):
     
@@ -54,22 +57,36 @@ if __name__ == '__main__':
     try:
         outf = open(outfile, 'w')
 
-        for target, probe_list in target_dict.items():
-            ping = Ping(target, key, probe_list=probe_list, num_packets=num_packets)
-            ping.description = description
-            ping.af = 4 if not ipv6 else 6
+        i = 0
+        target_list = target_dict.keys()
+        while i < len(target_list):
+           
+            try: 
+                target = target_list[i]
+                probe_list = target_dict[target]
 
-            response = ping.run()
-            status, result = process_response(response)
+                ping = Ping(target, key, probe_list=probe_list, num_packets=num_packets)
+                ping.description = description
+                ping.af = 4 if not ipv6 else 6
 
-            if status == 'error':
-                sys.stderr.write('Request got error %s\n' % result)
-            else:
-                measurement_list = result
-                measurement_list_str = map(str, measurement_list)
-                outstr = '\n'.join(measurement_list_str)
-                outf.write(outstr)
-                print(outstr)
+                response = ping.run()
+                status, result = process_response(response)
+
+                if status == 'error':
+                    sys.stderr.write('Request got error %s. Sleeping for %d seconds\n' % (result, SLEEP_TIME))
+                    time.sleep(SLEEP_TIME)
+                    continue #try again
+                else:  #on success
+                    measurement_list = result
+                    measurement_list_str = map(str, measurement_list)
+                    outstr = '\n'.join(measurement_list_str)
+                    outf.write(outstr)
+                    print(outstr)
+                    i += 1 #only increment on success
+            except socket.error:
+                sys.stderr.write('Got network error. Going to sleep for %d seconds\n' % SLEEP_TIME)
+                traceback.print_exc(file=sys.stderr)
+                time.sleep(SLEEP_TIME)
     except:
         sys.stderr.write('Got error making ping request\n')
         traceback.print_exc(file=sys.stderr)

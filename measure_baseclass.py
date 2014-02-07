@@ -6,6 +6,7 @@ import os
 import requests
 import argparse
 
+SLEEP_TIME = 60
 debug = False
 key_loc = '~/.atlas/auth'
 
