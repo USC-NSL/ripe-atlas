@@ -80,7 +80,7 @@ if __name__ == '__main__':
                     measurement_list = result
                     measurement_list_str = map(str, measurement_list)
                     outstr = '\n'.join(measurement_list_str)
-                    outf.write(outstr)
+                    outf.write(outstr+'\n')
                     print(outstr)
                     i += 1 #only increment on success
             except socket.error:
