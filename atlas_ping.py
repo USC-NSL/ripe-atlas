@@ -44,6 +44,7 @@ if __name__ == '__main__':
     ipv6 = args.ipv6
     description = args.description[0]
     num_packets = args.num_packets[0]
+    repeating = args.repeats[0]
 
     if not target_dict:
         sys.stderr.write('No targets defined\n')
@@ -68,6 +69,8 @@ if __name__ == '__main__':
                 ping = Ping(target, key, probe_list=probe_list, num_packets=num_packets)
                 ping.description = description
                 ping.af = 4 if not ipv6 else 6
+                ping.is_oneoff = True if repeating == 0 else False
+                ping.interval = repeating
 
                 response = ping.run()
                 status, result = process_response(response)

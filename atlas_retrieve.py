@@ -4,6 +4,7 @@ import os
 import sys
 import time
 import requests
+import traceback
 
 class Retrieve(object):
 
@@ -138,25 +139,60 @@ class Retrieve(object):
 
         return results
         
-    def fetch_ping_results(self):
+def parse_ping_results(results):
+    """
+    arg results is a JSON structure 
+    """
+    tab_list = []
+    for result in results:
+        try:        
+            probeid = result['prb_id']
+            mid = result['msm_id']
+            target_addr = result['dst_addr']
+            target_name = result['dst_name']
+            minvalue = result['min']
+            maxvalue = result['max']
 
-        results = self.fetch_results()
-
-        for (m_id, result) in results:
-                
-            probeid = result["prb_id"]
-            target = result["dst_addr"]
             rtts = []
-
-            for measurement in result["result"]:
-                if measurement.has_key("rtt"):
-                    rtt = measurement["rtt"]
+            for measurement in result['result']:
+                if measurement.has_key('rtt'):
+                    rtt = measurement['rtt']
                     rtts.append(rtt)
-                elif measurement.has_key("error"):
+                elif measurement.has_key('error'):
                     num_error += 1
+                elif measurement.has_key('x'):
+                    star = measurement['x']
+                    rtts.append(star)
                 else:
-                    sys.stderr.write("measurement: "+m_id+" result has no field rtt and not field error\n")
-            
-            #TODO finish this
+                    sys.stderr.write('measurement: %d result has no field rtt and not field error\n' % mid)
 
+            entry = (mid, probeid, target_addr, target_name, minvalue, maxvalue) + tuple(rtts)
+            tab_list.append(entry)
+        except:
+            traceback.print_exc(file=sys.stderr)
 
+    return tab_list
+
+if __name__ == '__main__':
+    
+    if len(sys.argv) != 3:
+        sys.stderr.write('Usage: <measurement-type> <measurement-file>\n')
+        sys.exit(1)
+    
+    measurement_type = sys.argv[1]
+    measurement_file = sys.argv[2]
+
+    with open(measurement_file) as f:
+        results = [json.loads(line.strip()) for line in f if len(line.strip())]
+    
+    """
+    """
+    if measurement_type == 'ping':
+        result_list = parse_ping_results(results)
+    else:
+        sys.stderr.write('Don\'t know about measurement-type %s\n' % measurement_type)
+        sys.exit(1)
+    
+    lines = [' '.join(map(str, x)) for x in result_list]
+    output = '\n'.join(lines)
+    print(output)   

@@ -19,7 +19,7 @@ class MeasurementBase(object):
         self.af = 4
         self.is_oneoff = True
         self.resolve_on_probe = True
-        
+        self.interval = 86400 #1 day    
         self.key = key
         self.sess = sess if sess else requests
 
@@ -36,8 +36,9 @@ class MeasurementBase(object):
         definitions['af'] = self.af #set ip version 
         definitions['type'] = self.measurement_type
         definitions['is_oneoff'] = str(self.is_oneoff).lower()
-        definitions['resolve_on_probe'] = str(self.resolve_on_probe).lower()
-        
+        definitions['interval'] = self.interval
+        definitions['resolve_on_probe'] = str(self.resolve_on_probe).lower()       
+ 
         return definitions
 
     def setup_probes(self):
@@ -150,6 +151,9 @@ def config_argparser():
     parser.add_argument('-r', '--resolve-on-probe', action='store_true',
                         help='Do DNS resolution on probe. (default: on)')
     parser.add_argument('--ipv6', action='store_true', help='Use IPv6 instead of IPv4 (default: IPv4)')
+    parser.add_argument('--repeats', nargs=1, default=[0],
+                        help='Is a one-off measurement. Non-zero is the repeating interval in seconds (default: 0)')
     parser.add_argument('target_list', nargs=1, help='Path to target-list')
     parser.add_argument('meas_id_output', nargs=1, help='Path to file where measurement ids will be written')
+    
     return parser
