@@ -26,7 +26,7 @@ class MeasurementBase(object):
         if probe_list:
             self.num_probes = len(probe_list)
             self.probe_type = 'probes'
-            self.probe_value = setup_probe_value('probe_type', probe_list)
+            self.probe_value = setup_probe_value('probes', probe_list)
 
     def setup_definitions(self):
     
@@ -59,14 +59,14 @@ class MeasurementBase(object):
 
         data = {'definitions': [definitions], 'probes': [probes]}
         data_str = json.dumps(data) 
-
+   
         headers =  {'content-type': 'application/json', 'accept': 'application/json'}
     
         response = self.sess.post('https://atlas.ripe.net/api/v1/measurement/?key='+key, data_str, headers=headers)
         response_str = response.text
 
         return json.loads(response_str)
-
+        
 def readkey(keyfile=key_loc):
     auth_file = os.path.expanduser(keyfile)
     f = open(auth_file)

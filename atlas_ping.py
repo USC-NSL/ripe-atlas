@@ -70,7 +70,7 @@ if __name__ == '__main__':
                 ping.description = description
                 ping.af = 4 if not ipv6 else 6
                 ping.is_oneoff = True if repeating == 0 else False
-                ping.interval = repeating
+                if not ping.is_oneoff: ping.interval = repeating #set the repeating interval
 
                 response = ping.run()
                 status, result = process_response(response)
