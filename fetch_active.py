@@ -33,7 +33,7 @@ def json2tab(probe_list):
                 values.append(_str(probe[key]))
             except KeyError:
                 values.append('None')            
-        #values = map(lambda x: _str(probe[x]), keys)
+        
         line = ' '.join(values)
         lines.append(line)
     return lines
@@ -153,25 +153,28 @@ class Page(object):
 
 
 def usage_and_error():
-    sys.stderr.write('Usage: <json|tab>\n')
+    sys.stderr.write('Usage: <json|tab> <only-active (true|false)>\n')
     sys.exit(1)
 
 if __name__ == '__main__':
 
-    if len(sys.argv) != 2:
+    if len(sys.argv) != 3:
         usage_and_error()
 
     format = sys.argv[1].lower()
     if format != 'json' and format != 'tab':
         usage_and_error()
-    
+   
+    onlyactive = sys.argv[2].lower() == 'true'
+ 
     #response = requests.get(URL) #make request
     probe_list = []
     page = Page()
     for p in page:
         probe_list.extend(p)
-    
-    #probe_list = json.loads(response.text)['objects'] #list
+ 
+    if onlyactive:
+        probe_list = filter_active(probe_list)        
 
     if format == 'json':
         print(json.dumps(probe_list, sort_keys=True, indent=4, separators=(',', ': ')))
