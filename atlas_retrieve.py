@@ -159,7 +159,7 @@ def parse_ping_results(results):
                     rtt = measurement['rtt']
                     rtts.append(rtt)
                 elif measurement.has_key('error'):
-                    num_error += 1
+                    rtts.append('x')
                 elif measurement.has_key('x'):
                     star = measurement['x']
                     rtts.append(star)
@@ -182,9 +182,23 @@ if __name__ == '__main__':
     measurement_type = sys.argv[1]
     measurement_file = sys.argv[2]
 
-    with open(measurement_file) as f:
-        results = [json.loads(line.strip()) for line in f if len(line.strip())]
+    #with open(measurement_file) as f:
+    #    results = [json.loads(line.strip()) for line in f if line.strip()]
     
+    results = []
+    f = open(measurement_file)
+    for line in f:
+        try:
+            line = line.strip()
+            if line:
+                result = json.loads(line)
+                results.append(result)
+        except:
+            sys.stderr.write('Error with line: %s\n' % line)
+            traceback.print_exc(file=sys.stderr)
+            f.close()
+    f.close()    
+
     """
     """
     if measurement_type == 'ping':
