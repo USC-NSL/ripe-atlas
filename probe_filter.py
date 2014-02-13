@@ -56,22 +56,28 @@ class Filter(object):
 
 if __name__ == '__main__':
     
-    if len(sys.argv) != 5:
-        sys.stderr.write('Usage: probe-file lat lon max-dist\n')
+    if len(sys.argv) != 3:
+        sys.stderr.write('Usage: probe-file max-dist\n')
         sys.exit(1)
         
     input_file = sys.argv[1]
-    lat = float(sys.argv[2])
-    lon = float(sys.argv[3])
-    max_dist = float(sys.argv[4])
+    max_dist = float(sys.argv[2])
 
     probe_list = fetch_active.load(input_file)
-    
-    filter = Filter(probe_list)
-    
-    #Amsterdam
-    #lat = 52.370216
-    #lon = 4.895168
-    filtered_probes = filter.within(lat, lon, max_dist)
-    lines = fetch_active.json2tab(filtered_probes)
-    print('\n'.join(lines))
+    asn_dict = {} #organize by asn
+    for probe in probe_list:
+        try:
+            asn = probe['asn_v4']
+            if asn != None:
+                try:
+                    asn_dict[asn].append(probe)
+                except:
+                    asn_dict[asn] = [probe]
+        except:
+            pass
+
+    for probe_sub_list in asn_dict.values():
+        probe_filter = Filter(probe_sub_list)
+        filtered_probes = probe_filter.separated_by(max_dist)
+        lines = fetch_active.json2tab(filtered_probes)
+        print('\n'.join(lines))
