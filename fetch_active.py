@@ -65,7 +65,7 @@ def loadtab(data):
             probe_dict = dict(zip(keys, typed_chunks)) #nice!
             probe_list.append(probe_dict)
         except:
-            traceback.print_exc(file=sys.stdout)
+            traceback.print_exc(file=sys.stderr)
             sys.stderr.write('Got error loading line: %s\n' % line)
             continue
         

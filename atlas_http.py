@@ -7,6 +7,7 @@ import time
 import json
 import sys
 import traceback
+import measure_baseclass
 
 login_url = 'https://access.ripe.net'
 udm_url = 'https://atlas.ripe.net/atlas/udm.html'
@@ -30,7 +31,9 @@ class Atlas:
                                   ('Origin', 'https://atlas.ripe.net'),
                                   ('X-Requested-With', 'XMLHttpRequest')]
         self.login()
+        self.target_dict = measure_baseclass.load_input(self.inputfile)
         
+        """
         self.target_list = []
         f = open(self.inputfile)
         for line in f:
@@ -45,6 +48,7 @@ class Atlas:
 
             self.target_list.append((target, probes))
         f.close()       
+        """
 
         """
         f = open(self.inputfile)
@@ -86,12 +90,13 @@ class Atlas:
     def runall(self, req, description, interval):
         timestr = time.strftime('%Y-%m-%d %H:%M:%S')
 
-        target_len = len(self.target_list)
+        target_len = len(self.target_dict)
+        targets = self.target_dict.keys()
         i = 0
 
         while i < target_len:
-
-            (target, probe_list) = self.target_list[i]
+            target = targets[i]
+            probe_list = self.target_dict[target]
 
             url = 'http://'+target+'/'+req
 
