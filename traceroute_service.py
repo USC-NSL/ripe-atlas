@@ -5,6 +5,7 @@ from threading import Timer
 import socket
 import atlas_traceroute
 import atlas_retrieve
+import fetch_active
 import urllib
 import datetime
 import tempfile
@@ -19,10 +20,12 @@ import logging
 import logging.config
 import requests
 import time
+import traceback
 
 ACTIVE_PROBES_URL = 'https://atlas.ripe.net/api/v1/probe/?limit=10000&format=txt'
 ACTIVE_FILE = 'atlas-active-%d-%d-%d-%d-%d-%d'
 MISSING_PROBE_ERR = 'Your selection of probes contains at least one probe that is unavailable'
+ACTIVE_PROBE_INTERVAL = 21600 #every 6 hours
 
 class SimpleForkingJSONRPCServer(ForkingMixIn, SimpleJSONRPCServer):
     
@@ -76,18 +79,20 @@ class TracerouteService(object):
         self.key = api_key
         self.lock = threading.RLock()
         self.auth_map = auth_map
-        self.active_probe_interval = 3600
+        self.active_probe_interval = ACTIVE_PROBE_INTERVAL
         self.fetching_now = False
 
         self.sess = requests.Session()
-        adapter = requests.adapters.HTTPAdapter(max_retries=3, pool_connections=20, pool_maxsize=200)
+        adapter = requests.adapters.HTTPAdapter(max_retries=3, pool_connections=5, pool_maxsize=10)
         self.sess.mount('https://', adapter)
 
-    def submit(self, probe_list, target):
+    def submit(self, probe_list, target, user_key=None):
         try:
-            self.logger.info('Got submit request for target %s with %s probes' % (target, str(probe_list)))
+            self.logger.info('Got submit request for target %s with %s probes supplied key: %s' % (target, str(probe_list), str(user_key)))
 
-            tr = atlas_traceroute.Traceroute(target, self.key, sess=self.sess)
+            key = user_key if user_key is not None else self.key
+
+            tr = atlas_traceroute.Traceroute(target, key, sess=self.sess)
             tr.num_probes = len(probe_list)
             tr.probe_type = 'probes'
             tr.probe_value = atlas_traceroute.setup_probe_value('probes', probe_list)
@@ -284,7 +289,18 @@ class TracerouteService(object):
             save_file_path = '%s%s%s' % (tempdir, os.sep, save_file_name)
             #fetch new active file
             self.logger.info('Fetching new active probe file to: '+save_file_path)
-            urllib.urlretrieve(ACTIVE_PROBES_URL, save_file_path)
+            #urllib.urlretrieve(ACTIVE_PROBES_URL, save_file_path)
+            probe_list = fetch_active.fetch_probes() #fetch only active probes
+            
+            #write json objects to string and save file
+            #probe_outstr = json.dumps(probe_list, sort_keys=True, indent=4, separators=(',', ': '))
+            lines = fetch_active.json2tab(probe_list)
+            probe_outstr = '\n'.join(lines)     
+    
+            f = open(save_file_path, 'w')
+            f.write(probe_outstr)
+            f.close() 
+
             self.logger.info('Finished fetching at %s' % str(datetime.datetime.now()))
 
             self.load_probes(save_file_path)
@@ -294,21 +310,16 @@ class TracerouteService(object):
         finally:
             self.fetching_now = False
 
-    def load_probes(self, file):
-        
-        f = open(file)
-        probe_data = f.read()
-        f.close()
-
-        all_probes = json.loads(probe_data)
-
-        #all_probes['meta'] #not using this right now
+    def load_probes(self, filename):
+       
+        probes_list = fetch_active.load(filename)
+        #print(probes_dict)
         active_probes = {}
 
-        probes_dict = all_probes['objects']
-        self.logger.info('Processing '+str(len(probes_dict))+' probes')
+        #probes_dict = all_probes['objects']
+        self.logger.info('Processing '+str(len(probes_list))+' probes')
         
-        for probe in probes_dict:
+        for probe in probes_list:
             try:
                 id = str(probe['id'])
                 status = probe['status_name']
@@ -322,15 +333,15 @@ class TracerouteService(object):
                     except KeyError:
                         active_probes[asn] = [id]
             except:
-                traceback.print_exc(file=sys.stdout)
+                traceback.print_exc(file=sys.stderr)
                 continue
-        
+
         #I'm *pretty sure* that assignments in Python are atomic
         #Otherwise, this could cause some pain
         self.probes = active_probes
 
         num_probes = sum(len(l) for l in self.probes.values())
-        self.logger.info('Loaded: '+file+' with '+str(num_probes)+' active probes')
+        self.logger.info('Loaded: '+filename+' with '+str(num_probes)+' active probes')
 
     def run(self):
 

@@ -42,6 +42,9 @@ def filter_active(probe_list):
     return filter(lambda x: x['status_name'] == 'Connected', probe_list)
 
 def loadtab(data):
+    """
+    Returns a list of probe dictionarys
+    """
     types = [_int, _int, _int, str, str, str, str, str, str, float, float]
     probe_list = []
 
@@ -151,6 +154,16 @@ class Page(object):
         results = json_response['objects']
         return results
 
+def fetch_probes(onlyactive=True):
+    probe_list = []
+    page = Page()
+    for p in page:
+        probe_list.extend(p)
+ 
+    if onlyactive:
+        probe_list = filter_active(probe_list)        
+
+    return probe_list
 
 def usage_and_error():
     sys.stderr.write('Usage: <json|tab> <only-active (true|false)>\n')

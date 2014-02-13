@@ -92,6 +92,10 @@ def submit_failure(server):
     measurement_id = server.submit([], '8.8.8.8')
     assertEquals(True, measurement_id < 0) #some error code
 
+def submit_withkey(server, key):
+    
+    measurement_id = server.submit([1], '8.8.8.8', key)    
+
 if __name__ == '__main__':
     
     key_file = os.path.expanduser('~')+os.sep+'.atlas/auth'
@@ -126,6 +130,7 @@ if __name__ == '__main__':
         fetch_active(server)
         submit_failure(server)
         fetch_mpls_and_host_unreachable(server)
+        submit_withkey(server, key)
 
     finally:
         print('Killing service')
