@@ -50,11 +50,11 @@ if __name__ == '__main__':
         sys.stderr.write('No targets defined\n')
         sys.exit(1)
 
-    for target, probe_list in target_dict.items():
-        if len(probe_list) > 500:
-            sys.stderr.write('There are more than 500 probes for target %s\n. This measurement would have failed.' % target)
-            sys.exit(1)
+    #for target, probe_list in target_dict.items():
+    #    if len(probe_list) > 500:
+    #        sys.stderr.write('Warning: There are more than 500 probes for target %s\n' % target)
     
+    """ """
     try:
         outf = open(outfile, 'w')
 
@@ -65,27 +65,39 @@ if __name__ == '__main__':
             try: 
                 target = target_list[i]
                 probe_list = target_dict[target]
+                
+                """
+                The maxmimum number of probes per requet is 500 so we need to break
+                this is up into several requests.
+                """
+                probe_list_chunks = [probe_list[x:x+500] for x in xrange(0, len(probe_list), 500)]
+                j = 0
+                #for probe_list_chunk in probe_list_chunks:
+                while j < len(probe_list_chunks):
 
-                ping = Ping(target, key, probe_list=probe_list, num_packets=num_packets)
-                ping.description = description
-                ping.af = 4 if not ipv6 else 6
-                ping.is_oneoff = True if repeating == 0 else False
-                if not ping.is_oneoff: ping.interval = repeating #set the repeating interval
+                    probe_list_chunk = probe_list_chunks[j]
+                    ping = Ping(target, key, probe_list=probe_list_chunk, num_packets=num_packets)
+                    ping.description = description
+                    ping.af = 4 if not ipv6 else 6
+                    ping.is_oneoff = True if repeating == 0 else False
+                    if not ping.is_oneoff: ping.interval = repeating #set the repeating interval
 
-                response = ping.run()
-                status, result = process_response(response)
+                    response = ping.run()
+                    status, result = process_response(response)
 
-                if status == 'error':
-                    sys.stderr.write('Request got error %s. Sleeping for %d seconds\n' % (result, SLEEP_TIME))
-                    time.sleep(SLEEP_TIME)
-                    continue #try again
-                else:  #on success
-                    measurement_list = result
-                    measurement_list_str = map(str, measurement_list)
-                    outstr = '\n'.join(measurement_list_str)
-                    outf.write(outstr+'\n')
-                    print(outstr)
-                    i += 1 #only increment on success
+                    if status == 'error':
+                        sys.stderr.write('Request got error %s. Sleeping for %d seconds\n' % (result, SLEEP_TIME))
+                        time.sleep(SLEEP_TIME)
+                        continue #try again
+                    else:  #on success
+                        measurement_list = result
+                        measurement_list_str = map(str, measurement_list)
+                        outstr = '\n'.join(measurement_list_str)
+                        outf.write(outstr+'\n')
+                        print(outstr)
+                        j += 1 #only increment on success
+
+                i += 1
             except socket.error:
                 sys.stderr.write('Got network error. Going to sleep for %d seconds\n' % SLEEP_TIME)
                 traceback.print_exc(file=sys.stderr)
