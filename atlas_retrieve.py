@@ -138,6 +138,43 @@ class Retrieve(object):
                 continue
 
         return results
+
+def parse_http_results(results):
+    """
+    arg: rsults is a JSON structure
+    """
+    tab_list = []
+    for result in results:
+        """ Example
+        {"from":"193.37.151.128","fw":4600,"group_id":1443405,"msm_id":1443405,"msm_name":"HTTPGet","prb_id":10293,"result":[{"af":4,"bsize":74362,"dst_addr":"217.30.152.144","hsize":598,"method":"GET","res":200,"rt":348.01999999999998,"src_addr":"192.168.44.1","ver":"1.1"}],"timestamp":1392746242,"type":"http","uri":"http://217.30.152.144/search?q=dogs"}
+        """
+        try:
+            probeid = result['prb_id']
+            mid = result['msm_id']
+            request = result['uri']
+            data = result['result']
+            for d in data:
+                target = d['dst_addr']
+                if 'rt' in d:
+                    request_time = d['rt']
+                elif 'err' in d:
+                    error_message = d['err']
+                    if 'timeout' in error_message:
+                        request_time = 'timeout'
+                    elif 'refused' in error_message:
+                        request_time = 'refused'
+                    elif 'unreachable' in error_message:
+                        request_time = 'unreachable'
+                    else:
+                        request_time = 'unknownerr'
+
+                entry = (mid, probeid, target, request_time, request)
+                tab_list.append(entry)
+        except:
+            sys.stderr.write('Error on line: %s\n' % str(result))
+            traceback.print_exc(file=sys.stderr)
+
+    return tab_list
         
 def parse_ping_results(results):
     """
@@ -203,6 +240,8 @@ if __name__ == '__main__':
     """
     if measurement_type == 'ping':
         result_list = parse_ping_results(results)
+    elif measurement_type == 'http':
+        result_list = parse_http_results(results)
     else:
         sys.stderr.write('Don\'t know about measurement-type %s\n' % measurement_type)
         sys.exit(1)
