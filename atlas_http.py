@@ -116,6 +116,9 @@ class Atlas:
                     continue
 
                 if not response['success']:
+                    if 'Not authenticated or session is expired' in response['errorMessage']:
+                        self.login()                    
+
                     sys.stderr.write(response['errorMessage']+'\n')
                     sys.stderr.write('Sleeping for '+str(self.sleep)+'\n')
                     time.sleep(self.sleep)
