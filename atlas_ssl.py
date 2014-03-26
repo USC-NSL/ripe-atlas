@@ -10,8 +10,8 @@ from measure_baseclass import SLEEP_TIME
 
 class SSL(MeasurementBase):
     
-    def __init__(self, target, key, probe_list=None, sess=None, num_packets=3):
-        super(Ping, self).__init__(target, key, probe_list, sess)
+    def __init__(self, target, key, probe_list=None, sess=None):
+        super(SSL, self).__init__(target, key, probe_list, sess)
         self.measurement_type = 'sslcert'
     
     def setup_definitions(self):
