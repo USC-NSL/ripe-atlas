@@ -102,7 +102,7 @@ class Retrieve(object):
             processed_results.append(result)
 
         return processed_results
-    
+
     def parse_dns_results(self, json_results):
         results = []
         
@@ -210,6 +210,21 @@ def parse_ping_results(results):
 
     return tab_list
 
+def parse_ssl_results(json_results):
+    results = []
+        
+    for result in json_results:
+            
+        probeid = result['prb_id']
+        timestamp = result['timestamp']
+        rt = result['rt']
+        dst = result['dst_addr']    
+        #cert = result['cert']
+    
+        results.append((probeid, timestamp, dst, rt))
+
+    return results
+
 if __name__ == '__main__':
     
     if len(sys.argv) != 3:
@@ -242,6 +257,8 @@ if __name__ == '__main__':
         result_list = parse_ping_results(results)
     elif measurement_type == 'http':
         result_list = parse_http_results(results)
+    elif measurement_type == 'ssl':
+        result_list = parse_ssl_results(results)
     else:
         sys.stderr.write('Don\'t know about measurement-type %s\n' % measurement_type)
         sys.exit(1)
