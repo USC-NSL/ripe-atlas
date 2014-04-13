@@ -18,6 +18,10 @@ atlas_ping.py probe-targets-file probe-targets-measurementids
 
 Each measurement script has it's own set of independent options so check out the usage output for each one. Measurement ids are also printed to stderr as a status indicator.
 
+
+##Configure Auth Key
+Measurement scripts require an auth key file at ~/.atlas/auth with the key as a single line. 
+
 ##Utilities
 
 ###Fetching active probes
