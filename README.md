@@ -4,7 +4,7 @@ The atlas client libraries require the "requests" library. The traceroute servic
 
 ##Measurement scripts
 
-There are several measurement scripts in place for running traceroute, ping, ssl etc... Most scripts double as Python class modules and command-line scripts. As command-line scripts, each one typically takes a probe-target file as the first argument and an output file to write measurement ids as the second argument. The probe-target file is a space-separated probeid, target pair per line such as
+There are several measurement scripts in place for running traceroute, ping, ssl etc... Most scripts double as Python class modules and command-line scripts. As command-line scripts, each typically takes a probe-target file as the first argument and an output file to write measurement ids as the second argument. The probe-target file is a space-separated probeid, target pair per line such as
 ```
 4125 www.google.com
 4156 204.57.0.5
@@ -16,7 +16,7 @@ Example usage of ping.
 atlas_ping.py probe-targets-file probe-targets-measurementids
 ```
 
-Each measurement script has it's own set of independent options so check out the usage output for each one.
+Each measurement script has it's own set of independent options so check out the usage output for each one. Measurement ids are also printed to stderr as a status indicator.
 
 ##Utilities
 
