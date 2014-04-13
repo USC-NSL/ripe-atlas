@@ -214,14 +214,21 @@ def parse_ssl_results(json_results):
     results = []
         
     for result in json_results:
-            
-        probeid = result['prb_id']
-        timestamp = result['timestamp']
-        rt = result['rt']
-        dst = result['dst_addr']    
-        #cert = result['cert']
+
+        try:
+            if 'err' in result:
+                continue
+
+            mid = result['msm_id']
+            probeid = result['prb_id']
+            timestamp = result['timestamp']
+            rt = result['rt']
+            target = result['dst_addr']
+            #cert = result['cert']
     
-        results.append((probeid, timestamp, dst, rt))
+            results.append((mid, probeid, target, rt, timestamp))
+        except:
+            sys.stderr.write('Error with %s\n' % str(result))    
 
     return results
 
