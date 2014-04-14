@@ -232,6 +232,41 @@ def parse_ssl_results(json_results):
 
     return results
 
+def parse_traceroute_results(json_results):
+    
+    for result in json_results:
+        hop_list = []
+            
+        target = result['dst_name']
+        probe_id = result['prb_id']
+        hop_data_list = result['result']
+            
+        for hop_data in hop_data_list:
+            hop_num = hop_data['hop']
+
+            hop_found = False
+            for hop in hop_data['result']: #usually 3 results for each hop
+                if 'from' in hop: #if this hop had a response
+                    host = hop['from']
+                    #rtt can sometimes be missing if there was a host 
+                    #unreachable error
+                    rtt = hop.get('rtt', -1.0)
+                    ttl = hop.get('ttl', -1.0)
+                    hop_list.append((hop_num, (host, rtt, ttl)))
+                    hop_found = True
+                    break
+                
+            #if we didn't find a response for this hop then 
+            #fill in with anonymous router
+            if not hop_found:
+                hop_list.append((hop_num, ('*,*,*', 0, 0)))
+
+        hop_list.sort()
+        hop_list = [str(x[1][0])+','+str(x[1][1])+','+str(x[1][2]) for x in hop_list]
+        hops_str = '|'.join(hop_list)
+        
+        print('%s %s %s' % (probe_id, target, hops_str))
+
 if __name__ == '__main__':
     
     if len(sys.argv) != 3:
@@ -266,6 +301,9 @@ if __name__ == '__main__':
         result_list = parse_http_results(results)
     elif measurement_type == 'ssl':
         result_list = parse_ssl_results(results)
+    elif measurement_type == 'traceroute':
+        parse_traceroute_results(results)
+        sys.exit(0)
     else:
         sys.stderr.write('Don\'t know about measurement-type %s\n' % measurement_type)
         sys.exit(1)
