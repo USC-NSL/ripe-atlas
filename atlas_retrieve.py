@@ -259,7 +259,7 @@ def parse_traceroute_results(json_results):
             #if we didn't find a response for this hop then 
             #fill in with anonymous router
             if not hop_found:
-                hop_list.append((hop_num, ('*,*,*', 0, 0)))
+                hop_list.append((hop_num, ('*', 0, 0)))
 
         hop_list.sort()
         hop_list = [str(x[1][0])+','+str(x[1][1])+','+str(x[1][2]) for x in hop_list]
