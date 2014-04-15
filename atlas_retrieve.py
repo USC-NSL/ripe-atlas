@@ -240,26 +240,31 @@ def parse_traceroute_results(json_results):
         target = result['dst_name']
         probe_id = result['prb_id']
         hop_data_list = result['result']
-            
+
         for hop_data in hop_data_list:
             hop_num = hop_data['hop']
 
             hop_found = False
-            for hop in hop_data['result']: #usually 3 results for each hop
-                if 'from' in hop: #if this hop had a response
-                    host = hop['from']
-                    #rtt can sometimes be missing if there was a host 
-                    #unreachable error
-                    rtt = hop.get('rtt', -1.0)
-                    ttl = hop.get('ttl', -1.0)
-                    hop_list.append((hop_num, (host, rtt, ttl)))
-                    hop_found = True
-                    break
+            if 'result' in hop_data:
+                for hop in hop_data['result']: #usually 3 results for each hop
+                    if 'from' in hop: #if this hop had a response
+                        host = hop['from']
+                        #rtt can sometimes be missing if there was a host 
+                        #unreachable error
+                        rtt = hop.get('rtt', -1.0)
+                        ttl = hop.get('ttl', -1.0)
+                        hop_list.append((hop_num, (host, rtt, ttl)))
+                        hop_found = True
+                        break
                 
-            #if we didn't find a response for this hop then 
-            #fill in with anonymous router
-            if not hop_found:
-                hop_list.append((hop_num, ('*', 0, 0)))
+                #if we didn't find a response for this hop then 
+                #fill in with anonymous router
+                if not hop_found:
+                    hop_list.append((hop_num, ('*', 0, 0)))
+            
+            elif 'error' in hop_data:
+                #if we see this then the traceroute has likely failed
+                hop_list.append((hop_num, ('-1', 0, 0)))
 
         hop_list.sort()
         hop_list = [str(x[1][0])+','+str(x[1][1])+','+str(x[1][2]) for x in hop_list]
