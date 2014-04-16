@@ -35,7 +35,7 @@ Measurement scripts require an auth key file at ~/.atlas/auth with the key as a 
 ```
 
 ###Downloading measurements
-This currently relies on GNU parallel but there are other versions commented out in the source.
+This currently relies on GNU parallel. It seems to work with versions >= 20130222 but older versions may have problems. There are other implementations of download commented out in the source if parallel is not available but they will be much slower.
 
 ```
 ./atlas_collect.sh probe-targets-file 4 > results.json 
