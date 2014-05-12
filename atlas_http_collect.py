@@ -61,7 +61,7 @@ class Atlas:
 
         self.opener.open(login_url, login_data)
 
-    def collect(self, description):
+    def collect(self, description, mtype):
         
         millis = int(round(time.time()*1000))
         
@@ -71,8 +71,15 @@ class Atlas:
         data['limit'] = '10000'
         data['sort'] = 'msm_id'
         data['dir'] = 'ASC'
-        data['filter'] = '[{"type":"string","value":"'+description+'","field":"descr"}]'
-        
+
+        if mtype == 'oneoff':
+            data['filter'] = '[{"type":"list","value":["oneoff",8],"field":"type"},{"type":"string","value":"'+description+'","field":"descr"}]'
+        elif mtype == 'repeating':
+            data['filter'] = '[{"type":"list","value":[1,2],"field":"status"},{"type":"string","value":"'+description+'","field":"descr"}]'
+        else:
+            data['filter'] = '[{"type":"string","value":"'+description+'","field":"descr"}]'
+         
+
         url_values = urllib.urlencode(data)
         
         url = data_url+'?'+url_values
@@ -96,16 +103,22 @@ class Atlas:
 
 if __name__ == '__main__':
 
-    if len(sys.argv) != 4:
-        sys.stderr.write('Usage: <username> <password> <description>\n')
+    if len(sys.argv) != 5:
+        sys.stderr.write('Usage: <username> <password> <description> <all|oneoff|repeating>\n')
         sys.exit(1)
 
     username = sys.argv[1]
     password = sys.argv[2]
     description = sys.argv[3]
+    mtype = sys.argv[4]
+    mtype = mtype.lower()
+    
+    if mtype != 'all' and mtype != 'oneoff' and mtype != 'repeating':
+        sys.stderr.write('last arg must be one of all, oneoff or repeating\n')
+        sys.exit(1)
 
     test = Atlas(username, password)
-    measurement_ids = test.collect(description)
+    measurement_ids = test.collect(description, mtype)
     
     str_ids = map(str, measurement_ids)
     output = '\n'.join(str_ids)
