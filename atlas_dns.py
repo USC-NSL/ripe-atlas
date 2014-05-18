@@ -1,10 +1,17 @@
 #!/usr/bin/python
 import measure_baseclass
+from measure_baseclass import MeasurementBase
+from measure_baseclass import load_input, readkey, process_response
+from measure_baseclass import SLEEP_TIME
+import sys
+import traceback
+import socket
+import time
 
 class DNS(MeasurementBase):
     
-    def __init__(self, query_class, query_type, query_arg, target, key, sess=None):
-        super(DNS, self).__init__(target, key, sess)
+    def __init__(self, query_class, query_type, query_arg, key, probe_list=None, sess=None):
+        super(DNS, self).__init__(None, key, probe_list, sess)
         self.measurement_type = 'dns'
         self.query_class = query_class
         self.query_type = query_type
@@ -13,38 +20,96 @@ class DNS(MeasurementBase):
     def setup_definitions(self):
         definitions = super(DNS, self).setup_definitions() 
     
+        del definitions['target']
+
         definitions['query_class'] = self.query_class
         definitions['query_type'] = self.query_type
         definitions['query_argument'] = self.query_arg
 
-def config_argparser()
-    parser = measure_baseclass.config_argparser('Issue DNS measurements to RIPE Atlas')
-
-    parser.
-
+def config_argparser():
+    parser = measure_baseclass.config_argparser()
+    parser.add_argument('--query-class', default=['IN'], nargs=1, help='Must be "IN" or "CHAOS" (Default: "IN")')
+    parser.add_argument('--query-type', default=['A'], nargs=1, help='"A", "AAAA", "PTR", ... (Default: "A")')
+    parser.add_argument('--protocol', default=['UDP'], nargs=1, help='Must be "TCP" or "UDP" (Default: "UDP")')
     return parser
  
 if __name__ == '__main__':
     parser = config_argparser()      
     args = parser.parse_args()
-
+    
     try:
         key_file = args.key_file[0]
         key = readkey(key_file)          #read in Atlas API key
     except:
-        sys.stderr.write('Error reading key file at '+key_file)
+        sys.stderr.write('Error reading key file at %s\n' % key_file)
         sys.exit(1)
 
-    args.probe_file    
+    target_dict = load_input(args.target_list[0])    
+    outfile = args.meas_id_output[0]
 
-    if hasattr(args, 'target_'): #run single target command
-        data = handle_single_target(args)
-        response = run(key, data)
-        response_output = format_response(response)
-        print(response_output)
-    else:                       #run multiple target command
-        target_file = args.target_list_file[0]
-        output_file = args.output_file[0]
-        target_dict = load_input(target_file)
-        handle_multi_targets(key, args, target_dict, output_file)
+    ipv6 = args.ipv6
+    description = args.description[0]
+    repeating = args.repeats[0]
+
+    if not target_dict:
+        sys.stderr.write('No targets defined\n')
+        sys.exit(1)
+
+    query_class = args.query_class
+    query_type = args.query_type
+
+    #should do arg validation here...
+
+    try:
+        outf = open(outfile, 'w')
+
+        i = 0
+        target_list = target_dict.keys()
+        while i < len(target_list):
+           
+            try: 
+                query_arg = target_list[i]
+                probe_list = target_dict[query_arg]
+                
+                """
+                The maxmimum number of probes per requet is 500 so we need to break
+                this is up into several requests.
+                """
+                probe_list_chunks = [probe_list[x:x+500] for x in xrange(0, len(probe_list), 500)]
+                j = 0
+                #for probe_list_chunk in probe_list_chunks:
+                while j < len(probe_list_chunks):
+
+                    probe_list_chunk = probe_list_chunks[j]
                  
+                    dns = DNS(query_class, query_type, query_arg, key, probe_list=probe_list_chunk)
+                    dns.description = description
+                    dns.af = 4 if not ipv6 else 6
+                    dns.is_oneoff = True if repeating == 0 else False
+                    if not dns.is_oneoff: dns.interval = repeating #set the repeating interval
+
+                    response = dns.run()
+                    status, result = process_response(response)
+
+                    if status == 'error':
+                        sys.stderr.write('Request got error %s. Sleeping for %d seconds\n' % (result, SLEEP_TIME))
+                        time.sleep(SLEEP_TIME)
+                        continue #try again
+                    else:  #on success
+                        measurement_list = result
+                        measurement_list_str = map(str, measurement_list)
+                        outstr = '\n'.join(measurement_list_str)
+                        outf.write(outstr+'\n')
+                        print(outstr)
+                        j += 1 #only increment on success
+
+                i += 1
+            except socket.error:
+                sys.stderr.write('Got network error. Going to sleep for %d seconds\n' % SLEEP_TIME)
+                traceback.print_exc(file=sys.stderr)
+                time.sleep(SLEEP_TIME)
+    except:
+        sys.stderr.write('Got error making DNS request\n')
+        traceback.print_exc(file=sys.stderr)
+    finally:
+        outf.close()  
