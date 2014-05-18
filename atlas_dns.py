@@ -10,26 +10,32 @@ import time
 
 class DNS(MeasurementBase):
     
-    def __init__(self, query_class, query_type, query_arg, key, probe_list=None, sess=None):
-        super(DNS, self).__init__(None, key, probe_list, sess)
+    def __init__(self, query_class, query_type, query_arg, target, key, probe_list=None, sess=None):
+        super(DNS, self).__init__(target, key, probe_list, sess)
         self.measurement_type = 'dns'
         self.query_class = query_class
         self.query_type = query_type
-        self.query_arg = query_arg
-    
+        self.query_arg = query_arg   
+ 
     def setup_definitions(self):
         definitions = super(DNS, self).setup_definitions() 
     
-        del definitions['target']
-
         definitions['query_class'] = self.query_class
         definitions['query_type'] = self.query_type
-        definitions['query_argument'] = self.query_arg
+
+        if self.query_arg: # if not None
+            definitions['query_argument'] = self.query_arg
+
+        #redundant
+        definitions['use_probe_resolver'] = definitions['resolve_on_probe']
+
+        return definitions
 
 def config_argparser():
     parser = measure_baseclass.config_argparser()
     parser.add_argument('--query-class', default=['IN'], nargs=1, help='Must be "IN" or "CHAOS" (Default: "IN")')
     parser.add_argument('--query-type', default=['A'], nargs=1, help='"A", "AAAA", "PTR", ... (Default: "A")')
+    parser.add_argument('--query-arg', default=['None'], nargs=1, help='DNS Resolver to use. (Default: Use probe\'s resolver')
     parser.add_argument('--protocol', default=['UDP'], nargs=1, help='Must be "TCP" or "UDP" (Default: "UDP")')
     return parser
  
@@ -50,14 +56,15 @@ if __name__ == '__main__':
     ipv6 = args.ipv6
     description = args.description[0]
     repeating = args.repeats[0]
+    resolve_on_probe = args.resolve_on_probe 
 
     if not target_dict:
         sys.stderr.write('No targets defined\n')
         sys.exit(1)
 
-    query_class = args.query_class
-    query_type = args.query_type
-
+    query_class = args.query_class[0]
+    query_type = args.query_type[0]
+    query_arg = args.query_arg[0]
     #should do arg validation here...
 
     try:
@@ -68,8 +75,8 @@ if __name__ == '__main__':
         while i < len(target_list):
            
             try: 
-                query_arg = target_list[i]
-                probe_list = target_dict[query_arg]
+                target = target_list[i]
+                probe_list = target_dict[target]
                 
                 """
                 The maxmimum number of probes per requet is 500 so we need to break
@@ -82,7 +89,9 @@ if __name__ == '__main__':
 
                     probe_list_chunk = probe_list_chunks[j]
                  
-                    dns = DNS(query_class, query_type, query_arg, key, probe_list=probe_list_chunk)
+                    dns = DNS(query_class, query_type, query_arg, target, key, probe_list=probe_list_chunk)
+                    dns.resolve_on_probe = resolve_on_probe
+
                     dns.description = description
                     dns.af = 4 if not ipv6 else 6
                     dns.is_oneoff = True if repeating == 0 else False
