@@ -1,3 +1,7 @@
+This is a set of command line scripts that double as Python libraries for creating measurements for RIPE Atlas. This project will be most useful for those who prefer to work on the command-line or need a higher level of programmability when issuing measurements. 
+
+The code started off from a very nice tutorial by Stéphane Bortzmeyer (http://www.bortzmeyer.org/ripe-atlas-api.html). I continue to use the "authentication key" configuration from the tutorial script. 
+
 ##Measurement scripts
 
 There are several measurement scripts in place for running traceroute, ping, ssl etc... Most scripts double as Python class modules and command-line scripts. As command-line scripts, each typically takes a probe-target file as the first argument and an output file to write measurement ids as the second argument. The probe-target file is a space-separated probeid, target pair per line such as
