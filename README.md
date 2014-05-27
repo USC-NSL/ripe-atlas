@@ -10,6 +10,8 @@ There are several measurement scripts in place for running traceroute, ping, ssl
 4156 204.57.0.5
 ...
 ```
+Measurements are target-centric. When measurements are issued, all probes measuring the same target will be batched together is a single measurement. This reduces load on the RIPE Atlas backend scheduling platform.
+
 
 Example usage of ping.
 ```
