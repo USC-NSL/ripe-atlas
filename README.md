@@ -1,7 +1,3 @@
-##Dependencies
-
-The atlas client libraries require the [Requests](http://docs.python-requests.org/en/latest) library.
-
 ##Measurement scripts
 
 There are several measurement scripts in place for running traceroute, ping, ssl etc... Most scripts double as Python class modules and command-line scripts. As command-line scripts, each typically takes a probe-target file as the first argument and an output file to write measurement ids as the second argument. The probe-target file is a space-separated probeid, target pair per line such as
@@ -47,3 +43,7 @@ All data is present in the original JSON format but this is nicer to work with i
 ```
 ./atlas_retrieve ping results.json > results.tab
 ```
+
+##Dependencies
+
+The atlas client libraries require the [Requests](http://docs.python-requests.org/en/latest) library.
