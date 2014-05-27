@@ -1,6 +1,6 @@
-##Requirements
+##Dependencies
 
-The atlas client libraries require the "requests" library. The traceroute service additionally requires "jsonrpclib".
+The atlas client libraries require the [Requests](http://docs.python-requests.org/en/latest) library.
 
 ##Measurement scripts
 
