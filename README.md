@@ -51,7 +51,7 @@ This currently relies on GNU parallel. It seems to work with versions >= 2013022
 
 ###Stop repeating measurements
 ```
-/stop_measurements.sh probe-targets-measurementids
+./stop_measurements.sh probe-targets-measurementids
 ```
 
 ##Dependencies
