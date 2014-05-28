@@ -1,6 +1,7 @@
 ##Introduction
 
-This is a set of command line scripts that double as Python libraries for creating measurements for RIPE Atlas. This project will be most useful for those who prefer to work on the command-line or need a higher level of flexability when issuing and collecting measurements.
+This project is a set of command line scripts that double as Python libraries for creating measurements for RIPE Atlas. It uses the more recent [RESTful API](https://atlas.ripe.net/docs/rest/). 
+This project will be most useful for those who prefer to work on the command-line or need a higher level of flexability when issuing and collecting measurements.
 
 If you are looking for a library to assist in parsing Atlas data then please check out the [analysis tools](https://github.com/RIPE-Atlas-Community/ripe-atlas-community-contrib).
 
