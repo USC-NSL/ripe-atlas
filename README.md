@@ -56,3 +56,8 @@ This currently relies on GNU parallel. It seems to work with versions >= 2013022
 
 ##Dependencies
 The atlas client libraries require the [Requests](http://docs.python-requests.org/en/latest) library.
+
+##Licence
+[The MIT License (MIT)](http://opensource.org/licenses/MIT)
+
+Copyright (c) 2014 Matt Calder & The University of Southern California.
