@@ -14,6 +14,7 @@ There are several measurement scripts in place for running traceroute, ping, ssl
 4156 204.57.0.5
 ...
 ```
+
 Measurements are target-centric. When measurements are issued, all probes measuring the same target will be batched together is a single measurement. This reduces load on the RIPE Atlas backend scheduling platform.
 
 
@@ -26,7 +27,7 @@ Each measurement script has it's own set of independent options so check out the
 
 
 ##Configure Auth Key
-Measurement scripts require an auth key file at ~/.atlas/auth with the key as a single line. 
+Measurement scripts require an auth key file at ~/.atlas/auth with the key as a single line. Alternatively, a key can be passed as a parameter to most scripts.
 
 ##Utilities
 
