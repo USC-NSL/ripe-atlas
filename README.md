@@ -1,6 +1,10 @@
-This is a set of command line scripts that double as Python libraries for creating measurements for RIPE Atlas. This project will be most useful for those who prefer to work on the command-line or need a higher level of programmability when issuing measurements. 
+##Introduction
 
-The code started off from a very nice tutorial by Stéphane Bortzmeyer (http://www.bortzmeyer.org/ripe-atlas-api.html). I continue to use the "authentication key" configuration from the tutorial script. 
+This is a set of command line scripts that double as Python libraries for creating measurements for RIPE Atlas. This project will be most useful for those who prefer to work on the command-line or need a higher level of flexability when issuing and collecting measurements.
+
+If you are looking for a library to assist in parsing Atlas data then please check out the [analysis tools](https://github.com/RIPE-Atlas-Community/ripe-atlas-community-contrib).
+
+The code started off from a very nice tutorial by Stéphane Bortzmeyer (http://www.bortzmeyer.org/ripe-atlas-api.html). I continue to use the "authentication key" configuration from the tutorial script.
 
 ##Measurement scripts
 
@@ -26,14 +30,14 @@ Measurement scripts require an auth key file at ~/.atlas/auth with the key as a 
 
 ##Utilities
 
+###Check status of measurements
+```
+./atlas_status probe-targets-measurementids
+```
+
 ###Fetching active probes
 ```
 ./fetch_active.py tab true > active_probes
-```
-
-###Check status of measurements
-```
-./status probe-targets-measurementids
 ```
 
 ###Downloading measurements
@@ -43,13 +47,10 @@ This currently relies on GNU parallel. It seems to work with versions >= 2013022
 ./atlas_collect.sh probe-targets-file 4 > results.json 
 ```
 
-###Parsing/Format JSON results into a TAB format
-All data is present in the original JSON format but this is nicer to work with if you prefer standard Unix tools.
-
+###Stop repeating measurements
 ```
-./atlas_retrieve ping results.json > results.tab
+/stop_measurements.sh probe-targets-measurementids
 ```
 
 ##Dependencies
-
 The atlas client libraries require the [Requests](http://docs.python-requests.org/en/latest) library.
