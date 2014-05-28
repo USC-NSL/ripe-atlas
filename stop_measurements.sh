@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ $# -ne 1 ]; then
-    echo "Usage: measurement_id file"
+    echo "Usage: measurement-id-file"
     exit 1
 fi
 
