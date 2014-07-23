@@ -15,7 +15,8 @@ class DNS(MeasurementBase):
         self.measurement_type = 'dns'
         self.query_class = query_class
         self.query_type = query_type
-        self.query_arg = query_arg   
+        #self.query_arg = query_arg   
+        self.query_arg = target
  
     def setup_definitions(self):
         definitions = super(DNS, self).setup_definitions() 
@@ -56,7 +57,7 @@ if __name__ == '__main__':
     ipv6 = args.ipv6
     description = args.description[0]
     repeating = args.repeats[0]
-    resolve_on_probe = args.resolve_on_probe 
+    resolve_on_probe = not args.dont_resolve_on_probe
 
     if not target_dict:
         sys.stderr.write('No targets defined\n')

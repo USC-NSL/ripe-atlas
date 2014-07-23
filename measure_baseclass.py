@@ -6,7 +6,7 @@ import os
 import requests
 import argparse
 
-SLEEP_TIME = 60
+SLEEP_TIME = 60*5
 debug = False
 key_loc = '~/.atlas/auth'
 
@@ -59,7 +59,6 @@ class MeasurementBase(object):
 
         data = {'definitions': [definitions], 'probes': [probes]}
         data_str = json.dumps(data) 
-   
         headers =  {'content-type': 'application/json', 'accept': 'application/json'}
     
         response = self.sess.post('https://atlas.ripe.net/api/v1/measurement/?key='+key, data_str, headers=headers)
@@ -148,8 +147,8 @@ def config_argparser():
         
     parser.add_argument('-d', '--description', default=[''], nargs=1, help='measurement description (default: empty)')
     parser.add_argument('-k', '--key-file', default=[key_loc], nargs=1, help='Path to RIPE Atlas API key (default: '+key_loc+')')
-    parser.add_argument('-r', '--resolve-on-probe', action='store_true',
-                        help='Do DNS resolution on probe. (default: on)')
+    parser.add_argument('-r', '--dont-resolve-on-probe', action='store_true',
+                        help='Do DNS resolution on probe? (default: on)')
     parser.add_argument('--ipv6', action='store_true', help='Use IPv6 instead of IPv4 (default: IPv4)')
     parser.add_argument('--repeats', nargs=1, default=[0],
                         help='Is a one-off measurement. Non-zero is the repeating interval in seconds (default: 0)')
