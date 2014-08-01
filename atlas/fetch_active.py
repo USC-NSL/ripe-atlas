@@ -4,6 +4,8 @@ import sys
 import requests
 import traceback
 import logging
+import time
+from requests.exceptions import ConnectionError
 
 URL = 'https://atlas.ripe.net/api/v1/probe/?limit=100&format=txt'
 HOST = 'https://atlas.ripe.net'
@@ -154,11 +156,29 @@ class Page(object):
         results = json_response['objects']
         return results
 
-def fetch_probes(onlyactive=True):
+def fetch_probes(onlyactive = True, inter_req_wait = 5, error_wait = 60, max_retries = 100):
     probe_list = []
     page = Page()
-    for p in page:
-        probe_list.extend(p)
+
+    retry_count = 0
+    while page.has_next():
+        try:
+            p = page.next()
+            probe_list.extend(p)
+            time.sleep(inter_req_wait)
+        except StopIteration:
+            break
+        except ConnectionError:
+            sys.stderr.write('ConnectionError fetching active probe list. Sleeping for %d\n' % error_wait)
+            retry_count += 1
+        
+            if retry_count == max_retries:
+                raise Exception("Reached maximum number of network retries fetching active probe list.")
+        
+            time.sleep(error_wait)
+
+#    for p in page:
+#        probe_list.extend(p)
  
     if onlyactive:
         probe_list = filter_active(probe_list)        
