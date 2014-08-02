@@ -4,7 +4,7 @@ import traceback
 import os
 import time
 import socket
-import measure_baseclass
+from atlas import measure_baseclass
 from measure_baseclass import MeasurementBase
 from measure_baseclass import load_input, readkey, process_response
 from measure_baseclass import SLEEP_TIME

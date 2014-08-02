@@ -1,6 +1,6 @@
 #!/usr/bin/python
 import sys
-import fetch_active
+from atlas import fetch_active
 
 class Filter(object):
     

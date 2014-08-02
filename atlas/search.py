@@ -2,12 +2,12 @@ import requests
 import logging
 import json
 import datetime
-import pytz
+#import pytz
 
 HOST = 'https://atlas.ripe.net'
 URL = 'https://atlas.ripe.net/api/v1/measurement/?limit=%d&type=%d&format=txt&use_iso_time=true' 
 NO_REQ_MSG = 'No requests left to make in this search'
-UTC = pytz.UTC
+#UTC = pytz.UTC
 dt_format = '%Y-%m-%d %H:%M:%S'
 
 HOUR = 3600

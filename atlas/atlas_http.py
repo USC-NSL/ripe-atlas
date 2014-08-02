@@ -7,7 +7,7 @@ import time
 import json
 import sys
 import traceback
-import measure_baseclass
+from atlas import measure_baseclass
 
 login_url = 'https://access.ripe.net'
 udm_url = 'https://atlas.ripe.net/atlas/udm.html'
