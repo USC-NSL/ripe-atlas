@@ -156,15 +156,17 @@ class Page(object):
         results = json_response['objects']
         return results
 
-def fetch_probes(onlyactive = True, inter_req_wait = 5, error_wait = 60, max_retries = 100):
+def fetch_probes(onlyactive = True, max_requests = -1, inter_req_wait = 5, error_wait = 60, max_retries = 100):
     probe_list = []
     page = Page()
 
     retry_count = 0
-    while page.has_next():
+    req_count = 0
+    while page.has_next() and (max_requests <= 0 or req_count < max_requests):
         try:
             p = page.next()
             probe_list.extend(p)
+            req_count += 1
             time.sleep(inter_req_wait)
         except StopIteration:
             break

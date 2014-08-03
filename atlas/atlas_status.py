@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import sys
 import requests
+import json
 
 class Retrieve(object):
 
@@ -41,7 +42,21 @@ class Retrieve(object):
         status = results['status']['name']
 
         return status
+    
+    def fetch_results(self, headers={'accept':'application/json'}):
 
+        req_url = '%s/%s/result/?' % (Retrieve.URL, self.measurement_id) 
+        if self.start and self.stop:
+            req_url += '&start=%d&stop=%d' % (self.start, self.stop)
+        if self.key:
+            req_url += '&key=%s' % self.key
+
+        response = self.sess.get(req_url, headers=headers)
+        response_str = response.text
+            
+        results = json.loads(response_str)
+
+        return results
 
 if __name__ == '__main__':
     
