@@ -1,34 +1,55 @@
 #!/usr/bin/python
 import sys
 from atlas import fetch_active
+from math import radians, sin, cos, sqrt, asin
 
 class Filter(object):
     
     def __init__(self, probe_list):
         self.probe_list = probe_list
 
-    def within(self, lat, lon, max_dist):
-        import hmvp
+    def haversine(self, lat1, lon1, lat2, lon2):
+        """
+       Calculate the great circle distance between two points
+       on the earth (specified in decimal degrees)
+       """
+        # convert decimal degrees to radians
+        lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+        # haversine formula
+        dlon = lon2 - lon1
+        dlat = lat2 - lat1
+        a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+        c = 2 * asin(sqrt(a))
+        km = 6367 * c
+        return km
+     
+    def dist_filter(self, points, values, max_dist):
+           
+        if len(points) != len(values):
+            raise Exception('points and values lists must be the same length!')
+     
+        p_len = len(points)
+        range_list = range(0, p_len)
+        discard_set = set()
+        index_set = set(range_list)
+     
+        for i1 in range_list:
+            for i2 in range_list:
+                if i1 != i2 and i1 not in discard_set and i2 not in discard_set:
+                    p1 = points[i1]
+                    p2 = points[i2]
+                    dist = self.haversine(p1[0], p1[1], p2[0], p2[1])
+                    if dist <= max_dist:
+                        discard_set.add(i2)
+     
+        keep = index_set.difference(discard_set)
+       
+        values = [values[i] for i in keep]    
+        return values
 
-        points = []     # [(probe['latitude'], probe['longitude']) for probe in self.probe_list]
-        good_probes = [] #terrible name. fix me please
-        for probe in self.probe_list:
-            try:
-                point = (probe['latitude'], probe['longitude'])
-                points.append(point)
-                good_probes.append(probe)
-            except:
-                continue
-
-        if len(points) != len(good_probes):
-            raise Exception('Number of points is not same as number of probes')
-        
-        filtered = hmvp.distance.within((lat,lon), points, good_probes, max_dist)
-        #filtered is a list of (distance, probe) tuples so just extract the probes
-        return zip(*filtered)[1]
 
     def separated_by(self, distance):
-        import hmvp
+#        import hmvp
     
         asn_probes = {}
         #separate probes by asn
@@ -49,7 +70,7 @@ class Filter(object):
         filtered_probes = []      
         for asn, probe_list in asn_probes.items():
             points =  [(p['latitude'], p['longitude']) for p in probe_list]
-            filtered = hmvp.distance.dist_filter(points, probe_list, distance)
+            filtered = self.dist_filter(points, probe_list, distance)
             filtered_probes.extend(filtered)
     
         return filtered_probes    
