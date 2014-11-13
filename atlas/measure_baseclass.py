@@ -18,6 +18,7 @@ class MeasurementBase(object):
         self.description = ''
         self.af = 4
         self.is_oneoff = True
+        self.is_public = True
         self.resolve_on_probe = True
         self.interval = 86400 #1 day    
         self.key = key
@@ -38,6 +39,7 @@ class MeasurementBase(object):
         definitions['is_oneoff'] = str(self.is_oneoff).lower()
         definitions['interval'] = self.interval
         definitions['resolve_on_probe'] = str(self.resolve_on_probe).lower()       
+        definitions['is_public'] = str(self.is_public).lower()
  
         return definitions
 
@@ -152,6 +154,8 @@ def config_argparser():
     parser.add_argument('--ipv6', action='store_true', help='Use IPv6 instead of IPv4 (default: IPv4)')
     parser.add_argument('--repeats', nargs=1, default=[0],
                         help='Is a one-off measurement. Non-zero is the repeating interval in seconds (default: 0)')
+    parser.add_argument('--private', action='store_true', 
+                        help='Sets this measurement to be private. Other people will not see the results. (default: public)') 
     parser.add_argument('target_list', nargs=1, help='Path to target-list')
     parser.add_argument('meas_id_output', nargs=1, help='Path to file where measurement ids will be written')
     

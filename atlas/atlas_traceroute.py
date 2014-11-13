@@ -64,6 +64,10 @@ if __name__ == '__main__':
     protocol = args.protocol[0]
     timeout = args.timeout[0]
     paris = args.paris[0]
+    is_public = args.private
+    ipv6 = args.ipv6
+    description = args.description[0]
+    repeating = args.repeats[0]
 
     if not target_dict:
         sys.stderr.write('No targets defined\n')
@@ -93,6 +97,12 @@ if __name__ == '__main__':
                     
                     traceroute = Traceroute(target, key, probe_list=probe_list_chunk, 
                                             dont_frag=dont_frag, protocol=protocol, timeout=timeout, paris=paris)
+                    traceroute.description = description
+                    traceroute.af = 4 if not ipv6 else 6
+                    traceroute.is_oneoff = True if repeating == 0 else False
+                    if not traceroute.is_oneoff: traceroute.interval = repeating #set the repeating interval
+                    traceroute.is_public = is_public
+
                     response = traceroute.run()
                     status, result = process_response(response)
 

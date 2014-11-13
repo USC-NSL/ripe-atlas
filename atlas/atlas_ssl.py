@@ -40,6 +40,7 @@ if __name__ == '__main__':
     ipv6 = args.ipv6
     description = args.description[0]
     repeating = args.repeats[0]
+    is_public = args.private
 
     if not target_dict:
         sys.stderr.write('No targets defined\n')
@@ -73,6 +74,7 @@ if __name__ == '__main__':
                     ssl.af = 4 if not ipv6 else 6
                     ssl.is_oneoff = True if repeating == 0 else False
                     if not ssl.is_oneoff: ssl.interval = repeating #set the repeating interval
+                    ssl.is_public = is_public
 
                     response = ssl.run()
                     status, result = process_response(response)

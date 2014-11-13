@@ -38,6 +38,10 @@ if __name__ == '__main__':
         sys.stderr.write('Error reading key file at %s\n' % key_file)
         sys.exit(1)
 
+    print(args)
+    sys.exit(1)
+
+
     target_dict = load_input(args.target_list[0])    
     outfile = args.meas_id_output[0]
 
@@ -45,7 +49,8 @@ if __name__ == '__main__':
     description = args.description[0]
     num_packets = args.num_packets[0]
     repeating = args.repeats[0]
-
+    is_public = args.private   
+ 
     if not target_dict:
         sys.stderr.write('No targets defined\n')
         sys.exit(1)
@@ -78,6 +83,7 @@ if __name__ == '__main__':
                     probe_list_chunk = probe_list_chunks[j]
                     ping = Ping(target, key, probe_list=probe_list_chunk, num_packets=num_packets)
                     ping.description = description
+                    ping.is_public = is_public
                     ping.af = 4 if not ipv6 else 6
                     ping.is_oneoff = True if repeating == 0 else False
                     if not ping.is_oneoff: ping.interval = repeating #set the repeating interval

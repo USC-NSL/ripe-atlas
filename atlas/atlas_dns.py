@@ -15,7 +15,6 @@ class DNS(MeasurementBase):
         self.measurement_type = 'dns'
         self.query_class = query_class
         self.query_type = query_type
-        #self.query_arg = query_arg   
         self.query_arg = target
  
     def setup_definitions(self):
@@ -58,6 +57,7 @@ if __name__ == '__main__':
     description = args.description[0]
     repeating = args.repeats[0]
     resolve_on_probe = not args.dont_resolve_on_probe
+    is_public = args.private
 
     if not target_dict:
         sys.stderr.write('No targets defined\n')
@@ -92,7 +92,7 @@ if __name__ == '__main__':
                  
                     dns = DNS(query_class, query_type, query_arg, target, key, probe_list=probe_list_chunk)
                     dns.resolve_on_probe = resolve_on_probe
-
+                    dns.is_public = is_public
                     dns.description = description
                     dns.af = 4 if not ipv6 else 6
                     dns.is_oneoff = True if repeating == 0 else False
