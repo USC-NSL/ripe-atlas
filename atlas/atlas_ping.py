@@ -38,10 +38,6 @@ if __name__ == '__main__':
         sys.stderr.write('Error reading key file at %s\n' % key_file)
         sys.exit(1)
 
-    print(args)
-    sys.exit(1)
-
-
     target_dict = load_input(args.target_list[0])    
     outfile = args.meas_id_output[0]
 
