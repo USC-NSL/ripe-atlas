@@ -1,15 +1,15 @@
 #!/bin/bash
 
-if [ $# -ne 1 ]; then
-    echo "usage: probe-file" >&2
+if [ $# -ne 3 ]; then
+    echo "usage: <probe-file> <user> <password>" >&2
     exit 1
 fi
 
 desc=sibyl-ip-test1
 traceroute=~/ripe-atlas/bin/atlas_http.py
 dst=6z5sgs1.egg.maas.uscnsl.net
-user=calderm@usc.edu
-pass=USCatlas
+user=$2
+pass=$3
 sleeptime=20
 
 probefile=$1
