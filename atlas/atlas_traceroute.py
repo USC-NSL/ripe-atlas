@@ -41,8 +41,10 @@ def config_argparser():
     parser.add_argument('--dont-frag', action='store_true', help='Don\'t fragment the packet (default: off)')
     parser.add_argument('--paris', default=[0], type=int, 
                         help='Use Paris. Value must be between 1 and 16. (default: off)')
-    parser.add_argument('--timeout', default=[4000], type=int,
+    parser.add_argument('--timeout', default=[4000], type=int, # list default and type=int do not seem to work
                         help='Value (in milliseconds) must be between 1 and 60000 (default: 4000)')
+    parser.add_argument('--npackets', default=[3], nargs=1,
+                        help='Number of packets to send to each hop (default: 3)')
     return parser
 
 if __name__ == '__main__':
@@ -68,6 +70,7 @@ if __name__ == '__main__':
     ipv6 = args.ipv6
     description = args.description[0]
     repeating = args.repeats[0]
+    npackets = args.npackets[0]
 
     if not target_dict:
         sys.stderr.write('No targets defined\n')
@@ -102,6 +105,7 @@ if __name__ == '__main__':
                     traceroute.is_oneoff = True if repeating == 0 else False
                     if not traceroute.is_oneoff: traceroute.interval = repeating #set the repeating interval
                     traceroute.is_public = is_public
+                    traceroute.npackets = npackets
 
                     response = traceroute.run()
                     status, result = process_response(response)
