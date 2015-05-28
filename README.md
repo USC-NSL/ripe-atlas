@@ -42,6 +42,15 @@ Measurement scripts require an auth key file at ~/.atlas/auth with the key as a 
 ./fetch_active.py tab true > active_probes
 ```
 
+The first argument specifies space-separated tabular format as the output. Otherwise the output is JSON. The format of the tab file is
+
+<sub>
+Probe ID | IPv4 ASN | IPv6 ASN | IPv4 Address | IPv6 Address | IPv4 Prefix | IPv6 Prefix | Connected Status | Country Code | Latitude | Longitude
+</sub>
+
+<!-- | -------- | -------- | -------- | -------- | -------- | -------- | -------- | -------- | -------- | -------- | -------- | -->
+
+
 ###Downloading measurements
 This currently relies on GNU parallel. It seems to work with versions >= 20130222 but older versions may have problems. There are other implementations of download commented out in the source if parallel is not available but they will be much slower.
 
