@@ -74,6 +74,29 @@ Check their status with ```$./atlas_status.py measure_ids.txt```. When all are c
 
 If you want to run repeating measurements then you should be able to pass the interval in seconds using ```--repeats`` flag (I think this works but I generally don't use it much). This will keep going unless you stop it.
 
+##Using As a Library
+Clone the project and install in the standard way ```python setup.py install```. 
+
+Here is a simple traceroute client.
+```python
+from atlas import atlas_traceroute
+
+target = 'www.google.com'
+key = 'abc1234'         # ripe atlas key to create measurements
+probe_list = ['12', '456', '99'] # list of probe ids
+
+traceroute = atlas_traceroute.Traceroute(target, key, probe_list=probe_list)
+#set some options
+traceroute.description = 'This is my traceroute test'
+traceroute.af = 4 # IPv4
+traceroute.is_oneoff = True # Make this one off
+traceroute.is_public = True
+traceroute.npackets = 3 # set 3 packets per hop
+
+response = traceroute.run()
+print(response)
+```
+
 ##Dependencies
 The atlas client libraries require the [Requests](http://docs.python-requests.org/en/latest) library.
 
