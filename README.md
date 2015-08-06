@@ -42,6 +42,15 @@ Measurement scripts require an auth key file at ~/.atlas/auth with the key as a 
 ./fetch_active.py tab true > active_probes
 ```
 
+The first argument specifies space-separated tabular format as the output. Otherwise the output is JSON. The format of the tab file is
+
+<sub>
+Probe ID | IPv4 ASN | IPv6 ASN | IPv4 Address | IPv6 Address | IPv4 Prefix | IPv6 Prefix | Connected Status | Country Code | Latitude | Longitude
+</sub>
+
+<!-- | -------- | -------- | -------- | -------- | -------- | -------- | -------- | -------- | -------- | -------- | -------- | -->
+
+
 ###Downloading measurements
 This currently relies on GNU parallel. It seems to work with versions >= 20130222 but older versions may have problems. There are other implementations of download commented out in the source if parallel is not available but they will be much slower.
 
@@ -54,10 +63,44 @@ This currently relies on GNU parallel. It seems to work with versions >= 2013022
 ./stop_measurements.sh probe-targets-measurementids
 ```
 
+##My Workflow
+These scripts don't implement the full convenience of probe selection that is possible in the web UI. Instead, you must create an input file with a list of all the probes you want to use. My workflow generally looks something like this.
+
+First, fetch a fresh copy of the list of probes that are currently online. ```$./fetch_active.py tab true > active_probes.txt``` Then I pick out the specific probes I want for a target with standard unix tools. For example, if I want to use all the probes hosted in AT&T in the U.S. to measure Google, I would do something like this. ```$awk '{ if($2 == 7018 && $9 == "US") print "www.google.com",$1}' active_probes.txt > probe_targets.txt``` It's a bit of manual work but it allowed me much more control with my experiments than I could get with the UI.`
+
+Then you should be able to run your measurements. For traceroutes, your would do ```$./atlas_traceroute.py probe_targets.txt measure_ids.txt```. 
+
+Check their status with ```$./atlas_status.py measure_ids.txt```. When all are complete, collect them with ```$./atlas_collect.sh measure_ids.txt 4 > results.json```.
+
+If you want to run repeating measurements then you should be able to pass the interval in seconds using ```--repeats`` flag (I think this works but I generally don't use it much). This will keep going unless you stop it.
+
+##Using As a Library
+Clone the project and install in the standard way ```python setup.py install```. 
+
+Here is a simple traceroute client.
+```python
+from atlas import atlas_traceroute
+
+target = 'www.google.com'
+key = 'abc1234'         # ripe atlas key to create measurements
+probe_list = ['12', '456', '99'] # list of probe ids
+
+traceroute = atlas_traceroute.Traceroute(target, key, probe_list=probe_list)
+#set some options
+traceroute.description = 'This is my traceroute test'
+traceroute.af = 4 # IPv4
+traceroute.is_oneoff = True # Make this one off
+traceroute.is_public = True
+traceroute.npackets = 3 # set 3 packets per hop
+
+response = traceroute.run()
+print(response)
+```
+
 ##Dependencies
 The atlas client libraries require the [Requests](http://docs.python-requests.org/en/latest) library.
 
 ##Licence
 [The MIT License (MIT)](http://opensource.org/licenses/MIT)
 
-Copyright (c) 2014 Matt Calder & The University of Southern California.
+Copyright (c) 2015 Matt Calder & The University of Southern California.
