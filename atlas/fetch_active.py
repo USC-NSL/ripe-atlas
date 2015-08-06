@@ -7,7 +7,7 @@ import logging
 import time
 from requests.exceptions import ConnectionError
 
-URL = 'https://atlas.ripe.net/api/v1/probe/?limit=100&format=txt'
+URL = 'https://atlas.ripe.net/api/v1/probe/?limit=100'
 HOST = 'https://atlas.ripe.net'
 keys = ['id', 'asn_v4', 'asn_v6', 'address_v4', 'address_v6', 'prefix_v4', 'prefix_v6', 'status_name', 'country_code', 'latitude', 'longitude']
 
@@ -134,7 +134,7 @@ class Page(object):
         url = self.__next_url if self.__next_url else self.initial_url
 
         response = requests.get(url) #make request
-        
+ 
         json_response = json.loads(response.text)
         if 'error' in json_response:
             err_msg = 'Error: %s' % json_response['error']
@@ -162,6 +162,7 @@ def fetch_probes(onlyactive = True, max_requests = -1, inter_req_wait = 5, error
 
     retry_count = 0
     req_count = 0
+    
     while page.has_next() and (max_requests <= 0 or req_count < max_requests):
         try:
             p = page.next()
@@ -179,12 +180,6 @@ def fetch_probes(onlyactive = True, max_requests = -1, inter_req_wait = 5, error
         
             time.sleep(error_wait)
 
-#    for p in page:
-#        probe_list.extend(p)
- 
-    if onlyactive:
-        probe_list = filter_active(probe_list)        
-
     return probe_list
 
 def usage_and_error():
@@ -201,16 +196,14 @@ if __name__ == '__main__':
         usage_and_error()
    
     onlyactive = sys.argv[2].lower() == 'true'
- 
-    #response = requests.get(URL) #make request
+    if onlyactive:
+        URL = URL + '&status=1' #set flag to fetch only "connected" probes
+
     probe_list = []
     page = Page()
     for p in page:
         probe_list.extend(p)
  
-    if onlyactive:
-        probe_list = filter_active(probe_list)        
-
     if format == 'json':
         print(json.dumps(probe_list, sort_keys=True, indent=4, separators=(',', ': ')))
     else: #
